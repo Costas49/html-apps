@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Παγκόσμιος Μεταφραστής</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1216; --panel:#191e26; --panel2:#222936; --line:#2c3543;
+    --ink:#f1ede5; --muted:#8b95a7; --acc:#7fb4ff; --acc2:#ffd479; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,sans-serif;min-height:100vh;padding-bottom:30px}
+  header{padding:16px 20px 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  header h1{font-size:1.15rem;font-weight:700}
+  header span{font-family:'DM Mono',monospace;color:var(--acc);font-size:.78rem;letter-spacing:.12em}
+  .langs{display:flex;gap:8px;padding:0 20px 10px;align-items:center;flex-wrap:wrap}
+  select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:var(--radius);padding:11px 12px;font-family:inherit;font-size:.9rem;flex:1;min-width:130px}
+  .swap{background:var(--panel);border:1px solid var(--line);color:var(--acc);border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;flex:none}
+  .box{margin:0 20px 10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+  .box label{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.1em;display:block;margin-bottom:6px}
+  textarea{width:100%;background:transparent;border:none;color:var(--ink);font-family:inherit;font-size:1.05rem;resize:vertical;min-height:70px;outline:none}
+  .out{font-size:1.15rem;min-height:1.6em;word-break:break-word}
+  .phon{font-size:1rem;color:var(--acc2);min-height:1.4em;word-break:break-word}
+  .phon.lat{color:var(--muted);font-size:.85rem;font-family:'DM Mono',monospace}
+  .actions{display:flex;gap:8px;padding:0 20px 12px;flex-wrap:wrap}
+  button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:var(--radius);padding:12px 16px;font-size:.9rem;cursor:pointer;font-family:inherit}
+  button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  button.primary{border-color:var(--acc);color:var(--acc);flex:1;min-width:150px}
+  button:disabled{opacity:.45;cursor:default}
+  .status{padding:0 20px 10px;font-size:.85rem;color:var(--muted);min-height:1.4em}
+  .status.err{color:#ff9b9b}
+  .status.ok{color:#8fe3c0}
+  .hist{margin:6px 20px;border-top:1px solid var(--line);padding-top:10px}
+  .hist h2{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:8px}
+  .hitem{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;font-size:.85rem;cursor:pointer}
+  .hitem .a{color:var(--muted)}
+  .hitem .b{color:var(--ink)}
+  .key-btn{font-size:.8rem;padding:8px 12px;border-color:var(--muted);}
+  .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,18,22,0.9);z-index:1000;align-items:center;justify-content:center;padding:20px}
+  .modal.active{display:flex}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;max-width:400px;width:100%}
+  .modal-box h2{margin-bottom:12px;color:var(--ink)}
+  .modal-box p{margin-bottom:16px;color:var(--muted);font-size:.9rem}
+  .modal-box input{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);color:var(--ink);font-family:monospace;font-size:.85rem;margin-bottom:12px}
+  .modal-box .actions{gap:8px}
+  .modal-box button{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ΠΑΓΚΟΣΜΙΟΣ ΜΕΤΑΦΡΑΣΤΗΣ</h1>
+  <span>ΟΛΕΣ ΟΙ ΓΛΩΣΣΕΣ · ΑΚΡΙΒΗ ΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ · ΦΩΝΗ</span>
+</header>
+
+<div class="langs">
+  <select id="from">
+    <option value="auto" selected>🌐 Αυτόματη ανίχνευση</option>
+  </select>
+  <button class="swap" id="swap" title="Αντιστροφή γλωσσών">⇄</button>
+  <select id="to"></select>
+  <button class="key-btn" id="keyBtn" title="Αλλαγή API key">🔑</button>
+</div>
+
+<div class="box">
+  <label>ΚΕΙΜΕΝΟ</label>
+  <textarea id="src" placeholder="Γράψε κείμενο…"></textarea>
+</div>
+
+<div class="actions">
+  <button class="primary" id="go">🌍 Μετάφραση</button>
+  <button id="clear">✕</button>
+</div>
+
+<div class="box">
+  <label>ΜΕΤΑΦΡΑΣΗ <span id="detlang"></span></label>
+  <div class="out" id="out">—</div>
+</div>
+
+<div class="box">
+  <label>ΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ (πώς προφέρεται) — ΑΚΡΙΒΗ</label>
+  <div class="phon" id="gr">—</div>
+  <div class="phon lat" id="lat"></div>
+</div>
+
+<div class="actions">
+  <button id="speak" disabled>🔊 Εκφώνηση</button>
+  <button id="copy" disabled>📋 Αντιγραφή</button>
+  <button id="save" disabled>💾 Αποθήκευση</button>
+</div>
+
+<div class="status" id="status">Έτοιμος.</div>
+
+<div class="hist" id="histwrap" style="display:none">
+  <h2>ΙΣΤΟΡΙΚΟ</h2>
+  <div id="hist"></div>
+</div>
+
+<div class="modal" id="keyModal">
+  <div class="modal-box">
+    <h2>Claude API Key</h2>
+    <p>Βάλε το API key σου από <strong>platform.anthropic.com/account/keys</strong></p>
+    <input type="password" id="keyInput" placeholder="sk_live_..." />
+    <div class="actions">
+      <button class="primary" id="keySave">Αποθήκευση</button>
+      <button id="keyCancel">Ακύρωση</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LANGS=[
+ ["en","Αγγλικά"],["fr","Γαλλικά"],["de","Γερμανικά"],["it","Ιταλικά"],["es","Ισπανικά"],
+ ["pt","Πορτογαλικά"],["ru","Ρωσικά"],["uk","Ουκρανικά"],["tr","Τουρκικά"],["ar","Αραβικά"],
+ ["he","Εβραϊκά"],["zh","Κινεζικά"],["ja","Ιαπωνικά"],["ko","Κορεατικά"],["hi","Χίντι"],
+ ["bn","Μπενγκάλι"],["ur","Ούρντου"],["fa","Περσικά"],["nl","Ολλανδικά"],["sv","Σουηδικά"],
+ ["no","Νορβηγικά"],["da","Δανικά"],["fi","Φινλανδικά"],["pl","Πολωνικά"],["cs","Τσεχικά"],
+ ["ro","Ρουμανικά"],["bg","Βουλγαρικά"],["sr","Σερβικά"],["sq","Αλβανικά"],["hu","Ουγγρικά"],
+ ["vi","Βιετναμικά"],["th","Ταϊλανδικά"],["id","Ινδονησιακά"],["ms","Μαλαισιανά"],["sw","Σουαχίλι"],
+ ["el","Ελληνικά"]
+];
+
+for(const [c,n] of LANGS){
+  $('from').add(new Option(n,c));
+  $('to').add(new Option(n,c));
+}
+$('to').value='en';
+
+let last=null, hist=[];
+
+function setStatus(m,cls){const s=$('status');s.textContent=m;s.className='status'+(cls?' '+cls:'');}
+
+function getApiKey(){
+  return localStorage.getItem('anthropic_api_key');
+}
+
+function setApiKey(key){
+  localStorage.setItem('anthropic_api_key',key);
+  setStatus('API key αποθηκεύτηκε.','ok');
+}
+
+$('keyBtn').addEventListener('click',()=>{
+  $('keyInput').value=getApiKey()||'';
+  $('keyModal').classList.add('active');
+});
+
+$('keySave').addEventListener('click',()=>{
+  const key=$('keyInput').value.trim();
+  if(!key){setStatus('Βάλε ένα API key.','err');return;}
+  setApiKey(key);
+  $('keyModal').classList.remove('active');
+});
+
+$('keyCancel').addEventListener('click',()=>{
+  $('keyModal').classList.remove('active');
+});
+
+$('keyInput').addEventListener('keydown',e=>{if(e.key==='Enter'){$('keySave').click();}});
+
+$('go').addEventListener('click',translate);
+$('src').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();translate();}});
+$('clear').addEventListener('click',()=>{$('src').value='';$('src').focus();});
+$('swap').addEventListener('click',()=>{
+  const f=$('from').value,t=$('to').value;
+  if(f==='auto'){ if(last&&last.detCode){$('from').value=t;$('to').value=last.detCode==='el'?'en':last.detCode;} return; }
+  $('from').value=t;
+  $('to').value=f;
+});
+
+async function translate(){
+  const text=$('src').value.trim();
+  if(!text){setStatus('Γράψε πρώτα κείμενο.','err');return;}
+  
+  const apiKey=getApiKey();
+  if(!apiKey){
+    setStatus('Χρειάζεται API key — πάτησε το 🔑 κουμπί.','err');
+    $('keyModal').classList.add('active');
+    return;
+  }
+
+  const from=$('from').value, to=$('to').value;
+  const toName=LANGS.find(l=>l[0]===to)?.[1]||to;
+  setStatus('Μετάφραση…');
+  $('go').disabled=true;
+  
+  try{
+    const sys=`Είσαι μεταφραστής. Απάντησε ΜΟΝΟ με JSON, χωρίς markdown:
+{"detected":"όνομα γλώσσας εισόδου στα ελληνικά","detected_code":"iso κωδικός π.χ. en",
+"translation":"η μετάφραση",
+"greek_phonetic":"η προφορά της μετάφρασης γραμμένη με ελληνικά γράμματα, με τόνους εκεί που τονίζεται",
+"latin_phonetic":"η προφορά με λατινικούς χαρακτήρες"}
+Αν η μετάφραση είναι στα ελληνικά, το greek_phonetic = ίδιο με τη μετάφραση.`;
+    
+    const usr=(from==='auto'
+      ?`Μετάφρασε στα ${toName} το κείμενο:\n${text}`
+      :`Μετάφρασε από ${LANGS.find(l=>l[0]===from)?.[1]||from} στα ${toName} το κείμενο:\n${text}`);
+    
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey},
+      body:JSON.stringify({
+        model:"claude-opus-4-6",
+        max_tokens:1000,
+        system:sys,
+        messages:[{role:"user",content:usr}]
+      })
+    });
+    
+    if(!r.ok){
+      if(r.status===401) throw new Error('API_KEY_INVALID');
+      throw new Error('HTTP_'+r.status);
+    }
+    
+    const d=await r.json();
+    if(d.type==='error') throw new Error(d.error.message||'API_ERROR');
+    
+    const raw=(d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+    if(!raw) throw new Error('EMPTY');
+    
+    const j=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    
+    last={text,to,trans:j.translation,gr:j.greek_phonetic,lat:j.latin_phonetic,det:j.detected,detCode:j.detected_code};
+    $('out').textContent=j.translation||'—';
+    $('gr').textContent=j.greek_phonetic||'—';
+    $('lat').textContent=j.latin_phonetic?('['+j.latin_phonetic+']'):'';
+    $('detlang').textContent=(from==='auto'&&j.detected)?('· ανιχνεύθηκε: '+j.detected):'';
+    ['speak','copy','save'].forEach(i=>$(i).disabled=false);
+    setStatus('Έτοιμο.','ok');
+    hist.unshift(last); if(hist.length>12)hist.length=12; renderHist();
+  }catch(e){
+    const m=e.message||'';
+    if(m==='API_KEY_INVALID') setStatus('Το API key δεν είναι σωστό. Πάτησε 🔑 και δοκίμασε ξανά.','err');
+    else if(m.startsWith('HTTP_401')) setStatus('Unauthorized — έλεγξε το API key.','err');
+    else setStatus('Σφάλμα: '+m,'err');
+    console.error(e);
+  }
+  $('go').disabled=false;
+}
+
+function renderHist(){
+  $('histwrap').style.display='block';
+  const h=$('hist'); h.innerHTML='';
+  hist.forEach(item=>{
+    const div=document.createElement('div');
+    div.className='hitem';
+    div.innerHTML='<span class="a"></span> → <span class="b"></span>';
+    div.querySelector('.a').textContent=item.text.slice(0,40);
+    div.querySelector('.b').textContent=(item.trans||'').slice(0,40);
+    div.addEventListener('click',()=>{
+      $('src').value=item.text;$('out').textContent=item.trans;
+      $('gr').textContent=item.gr;$('lat').textContent=item.lat?('['+item.lat+']'):'';
+      last=item;['speak','copy','save'].forEach(i=>$(i).disabled=false);
+    });
+    h.appendChild(div);
+  });
+}
+
+$('speak').addEventListener('click',()=>{
+  if(!last)return;
+  if(!('speechSynthesis' in window)){setStatus('Η συσκευή δεν υποστηρίζει εκφώνηση.','err');return;}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(last.trans);
+  u.lang=last.to;
+  const vs=speechSynthesis.getVoices();
+  const v=vs.find(v=>v.lang.toLowerCase().startsWith(last.to))||vs.find(v=>v.lang.toLowerCase().slice(0,2)===last.to.slice(0,2));
+  if(v)u.voice=v;
+  u.rate=0.95;
+  u.onend=()=>setStatus('Έτοιμο.','ok');
+  speechSynthesis.speak(u);
+  setStatus('Εκφώνηση…');
+});
+if('speechSynthesis' in window) speechSynthesis.getVoices();
+
+$('copy').addEventListener('click',async()=>{
+  if(!last)return;
+  try{
+    await navigator.clipboard.writeText(last.trans+'\n'+last.gr);
+    setStatus('Αντιγράφηκε.','ok');
+  }catch(e){setStatus('Σφάλμα αντιγραφής.','err');}
+});
+
+$('save').addEventListener('click',()=>{
+  if(!last)return;
+  const content='ΚΕΙΜΕΝΟ:\n'+last.text+'\n\nΜΕΤΑΦΡΑΣΗ ('+(LANGS.find(l=>l[0]===last.to)?.[1]||last.to)+'):\n'+last.trans+'\n\nΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ:\n'+last.gr+(last.lat?('\n\nΛΑΤΙΝΙΚΗ:\n'+last.lat):'');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'}));
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  a.download='metafrasi_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.txt';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  setStatus('Αποθηκεύτηκε.','ok');
+});
+
+if(getApiKey()) setStatus('Έτοιμος — API key φορτώθηκε.','ok');
+</script>
+</body>
+</html>

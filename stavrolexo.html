@@ -316,7 +316,10 @@ for (var r = 0; r < ROWS; r++) {
         var input = document.createElement('input');
         input.maxLength = 1;
         input.autocomplete = 'off';
-        input.autocapitalize = 'characters';
+        input.autocapitalize = 'off';
+        input.autocorrect = 'off';
+        input.spellcheck = false;
+        input.setAttribute('inputmode', 'text');
         input.dataset.row = r;
         input.dataset.col = c;
         cellDiv.appendChild(input);
@@ -422,7 +425,7 @@ for (var r = 0; r < ROWS; r++) {
                 input.value = val.slice(-1);
                 input.classList.remove('correct', 'incorrect');
                 saveProgress();
-                if (input.value) moveNext(r, c, currentDir, false);
+                if (input.value) setTimeout(function () { moveNext(r, c, currentDir, false); }, 0);
                 checkComplete();
             });
 

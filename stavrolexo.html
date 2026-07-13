@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10151f">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoizqPPhM6xz4XPgc+MzrvOtc6+zr8iLCJzaG9ydF9uYW1lIjoizqPPhM6xz4XPgc+MzrvOtc6+zr8iLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzEwMTUxZiIsInRoZW1lX2NvbG9yIjoiIzEwMTUxZiIsIm9yaWVudGF0aW9uIjoicG9ydHJhaXQtcHJpbWFyeSIsInNjb3BlIjoiLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSGRwWkhSb1BTSXhPVElpSUdobGFXZG9kRDBpTVRreUlqNDhjbVZqZENCM2FXUjBhRDBpTVRreUlpQm9aV2xuYUhROUlqRTVNaUlnWm1sc2JEMGlJekV3TVRVeFppSXZQanh5WldOMElIZzlJakl3SWlCNVBTSXlNQ0lnZDJsa2RHZzlJamN3SWlCb1pXbG5hSFE5SWpjd0lpQm1hV3hzUFNJak5HWmtNV00xSWk4K1BISmxZM1FnZUQwaU1UQXlJaUI1UFNJeE1ESWlJSGRwWkhSb1BTSTNNQ0lnYUdWcFoyaDBQU0kzTUNJZ1ptbHNiRDBpSXpSbVpERmpOU0l2UGp4eVpXTjBJSGc5SWpFd01pSWdlVDBpTWpBaUlIZHBaSFJvUFNJM01DSWdhR1ZwWjJoMFBTSTNNQ0lnWm1sc2JEMGlJMlkyWVdRMU5TSXZQanh5WldOMElIZzlJakl3SWlCNVBTSXhNRElpSUhkcFpIUm9QU0kzTUNJZ2FHVnBaMmgwUFNJM01DSWdabWxzYkQwaUkyWTJZV1ExTlNJdlBqd3ZjM1puUGc9PSIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9zdmcreG1sIn1dfQ==">
+    <title>Σταυρόλεξο</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            background: #10151f;
+            color: #e8ecf3;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            gap: 14px;
+        }
+
+        #header {
+            text-align: center;
+        }
+
+        #header h1 {
+            font-size: 22px;
+            letter-spacing: 0.5px;
+        }
+
+        #header p {
+            font-size: 12px;
+            color: #8b95a7;
+            margin-top: 2px;
+        }
+
+        #status {
+            min-height: 22px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4fd1c5;
+            text-align: center;
+        }
+
+        #board {
+            background: #1b2332;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        #grid {
+            display: grid;
+            gap: 2px;
+            width: min(84vw, 380px);
+            aspect-ratio: 7 / 6;
+        }
+
+        .cell {
+            position: relative;
+            background: #f4efe3;
+            border-radius: 2px;
+        }
+
+        .cell.black {
+            background: #10151f;
+            border-radius: 2px;
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: min(4.2vw, 20px);
+            font-weight: 700;
+            color: #10151f;
+            text-transform: uppercase;
+            caret-color: transparent;
+        }
+
+        .cell input:focus {
+            outline: none;
+            background: #ffe9a8;
+        }
+
+        .cell.active input {
+            background: #ffe9a8;
+        }
+
+        .cell.focused input {
+            background: #ffc94a;
+        }
+
+        .cell input.correct {
+            background: #b7ecd6 !important;
+            color: #0a5c3e;
+        }
+
+        .cell input.incorrect {
+            background: #f7b8b8 !important;
+            color: #7a1f1f;
+        }
+
+        .cell .num {
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            font-size: 8px;
+            font-weight: 700;
+            color: #444;
+            pointer-events: none;
+        }
+
+        #controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            background: #24304a;
+            color: #e8ecf3;
+            border: 1px solid #3a4a6b;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:active {
+            background: #324063;
+        }
+
+        #clues {
+            width: min(90vw, 420px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .clue-group h2 {
+            font-size: 14px;
+            color: #4fd1c5;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #2a3550;
+            padding-bottom: 4px;
+        }
+
+        .clue-item {
+            font-size: 13px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        .clue-item:active {
+            background: #24304a;
+        }
+
+        .clue-item.selected {
+            background: #2a3f5f;
+            color: #ffe9a8;
+        }
+
+        .clue-item b {
+            color: #f6ad55;
+            margin-right: 4px;
+        }
+
+        #footer {
+            font-size: 11px;
+            color: #5b6478;
+            text-align: center;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>🧩 Σταυρόλεξο</h1>
+    <p>Θέμα: Καθημερινές λέξεις</p>
+</div>
+
+<div id="status"></div>
+
+<div id="board">
+    <div id="grid"></div>
+</div>
+
+<div id="controls">
+    <button id="checkBtn">Έλεγχος</button>
+    <button id="revealBtn">Λύση</button>
+    <button id="clearBtn">Καθαρισμός</button>
+</div>
+
+<div id="clues">
+    <div class="clue-group">
+        <h2>ΟΡΙΖΟΝΤΙΑ</h2>
+        <div id="acrossClues"></div>
+    </div>
+    <div class="clue-group">
+        <h2>ΚΑΘΕΤΑ</h2>
+        <div id="downClues"></div>
+    </div>
+</div>
+
+<div id="footer">Πληκτρολόγησε ή χρησιμοποίησε τα βελάκια για πλοήγηση</div>
+
+<script>
+// === REGISTER SERVICE WORKER ===
+if ('serviceWorker' in navigator) {
+    var swCode = `
+var CACHE_NAME = 'stavrolexo-v1';
+self.addEventListener('install', function(event) {
+    event.waitUntil(caches.open(CACHE_NAME).then(function(cache) { return cache.add('./'); }));
+});
+self.addEventListener('activate', function(event) { event.waitUntil(Promise.resolve()); });
+self.addEventListener('fetch', function(event) {
+    event.respondWith(
+        caches.match(event.request).then(function(response) {
+            return response || fetch(event.request).catch(function() { return new Response('Offline', {status: 503}); });
+        })
+    );
+});
+`;
+    var blob = new Blob([swCode], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob), {scope: './'}).catch(function() {});
+}
+
+// === PUZZLE DATA ===
+var ROWS = 6, COLS = 7;
+
+var WORDS = [
+    {num: 1, dir: 'D', row: 0, col: 1, answer: 'ΑΓΑΠΗ', clue: "Έντονο συναίσθημα στοργής και φροντίδας για κάποιον"},
+    {num: 2, dir: 'D', row: 0, col: 4, answer: 'ΝΗΣΙ', clue: 'Κομμάτι στεριάς περιτριγυρισμένο από θάλασσα'},
+    {num: 3, dir: 'D', row: 1, col: 2, answer: 'ΗΛΙΟΣ', clue: 'Το άστρο που φωτίζει τη Γη την ημέρα'},
+    {num: 4, dir: 'D', row: 1, col: 3, answer: 'ΦΑΡΟΣ', clue: 'Κτίριο με φως που καθοδηγεί τα πλοία τη νύχτα'},
+    {num: 5, dir: 'D', row: 1, col: 5, answer: 'ΕΣΥ', clue: "Αντωνυμία β' ενικού προσώπου"},
+    {num: 6, dir: 'D', row: 1, col: 6, answer: 'ΝΑΟΣ', clue: 'Χώρος λατρείας, εκκλησία ή αρχαίο ιερό'},
+    {num: 7, dir: 'A', row: 2, col: 0, answer: 'ΘΑΛΑΣΣΑ', clue: 'Η αλμυρή έκταση νερού γύρω από τα νησιά'},
+    {num: 7, dir: 'D', row: 2, col: 0, answer: 'ΘΕΟΣ', clue: 'Υπέρτατο ον που λατρεύουν οι πιστοί'}
+];
+
+// === BUILD GRID FROM WORD LIST (single source of truth) ===
+var solution = [];
+var cellWords = [];
+var cellNumber = [];
+for (var r = 0; r < ROWS; r++) {
+    solution.push(new Array(COLS).fill(null));
+    cellWords.push(new Array(COLS).fill(null).map(function () { return {}; }));
+    cellNumber.push(new Array(COLS).fill(null));
+}
+
+WORDS.forEach(function (w) {
+    for (var i = 0; i < w.answer.length; i++) {
+        var r = w.row + (w.dir === 'D' ? i : 0);
+        var c = w.col + (w.dir === 'A' ? i : 0);
+        var letter = w.answer[i];
+        if (solution[r][c] !== null && solution[r][c] !== letter) {
+            console.error('Conflict at', r, c, solution[r][c], letter);
+        }
+        solution[r][c] = letter;
+        cellWords[r][c][w.dir] = w;
+    }
+    if (cellNumber[w.row][w.col] === null) cellNumber[w.row][w.col] = w.num;
+});
+
+// === RENDER GRID ===
+var gridEl = document.getElementById('grid');
+gridEl.style.gridTemplateColumns = 'repeat(' + COLS + ', 1fr)';
+gridEl.style.gridTemplateRows = 'repeat(' + ROWS + ', 1fr)';
+
+var inputs = [];
+for (var r = 0; r < ROWS; r++) {
+    inputs.push(new Array(COLS).fill(null));
+}
+
+for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+        var cellDiv = document.createElement('div');
+        if (solution[r][c] === null) {
+            cellDiv.className = 'cell black';
+            gridEl.appendChild(cellDiv);
+            continue;
+        }
+        cellDiv.className = 'cell';
+        cellDiv.dataset.row = r;
+        cellDiv.dataset.col = c;
+
+        if (cellNumber[r][c] !== null) {
+            var numSpan = document.createElement('span');
+            numSpan.className = 'num';
+            numSpan.textContent = cellNumber[r][c];
+            cellDiv.appendChild(numSpan);
+        }
+
+        var input = document.createElement('input');
+        input.maxLength = 1;
+        input.autocomplete = 'off';
+        input.autocapitalize = 'off';
+        input.autocorrect = 'off';
+        input.spellcheck = false;
+        input.setAttribute('inputmode', 'text');
+        input.dataset.row = r;
+        input.dataset.col = c;
+        cellDiv.appendChild(input);
+        gridEl.appendChild(cellDiv);
+        inputs[r][c] = input;
+    }
+}
+
+// === STATE ===
+var currentDir = 'A';
+var STORAGE_KEY = 'stavrolexoProgress';
+
+function stripAccents(s) {
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function getWordAt(r, c, dir) {
+    var cw = cellWords[r][c];
+    if (cw[dir]) return cw[dir];
+    return cw['A'] || cw['D'];
+}
+
+function wordCells(word) {
+    var cells = [];
+    for (var i = 0; i < word.answer.length; i++) {
+        var r = word.row + (word.dir === 'D' ? i : 0);
+        var c = word.col + (word.dir === 'A' ? i : 0);
+        cells.push([r, c]);
+    }
+    return cells;
+}
+
+function clearHighlights() {
+    document.querySelectorAll('.cell.active, .cell.focused').forEach(function (el) {
+        el.classList.remove('active', 'focused');
+    });
+}
+
+function highlightWord(word, focusR, focusC) {
+    clearHighlights();
+    if (!word) return;
+    wordCells(word).forEach(function (rc) {
+        var el = inputs[rc[0]][rc[1]].parentElement;
+        el.classList.add('active');
+    });
+    if (focusR !== undefined) {
+        inputs[focusR][focusC].parentElement.classList.add('focused');
+    }
+    highlightClue(word);
+}
+
+function highlightClue(word) {
+    document.querySelectorAll('.clue-item').forEach(function (el) {
+        el.classList.remove('selected');
+    });
+    var sel = document.querySelector('.clue-item[data-num="' + word.num + '"][data-dir="' + word.dir + '"]');
+    if (sel) sel.classList.add('selected');
+}
+
+function focusCell(r, c, dir) {
+    var word = getWordAt(r, c, dir || currentDir);
+    if (word) currentDir = word.dir;
+    inputs[r][c].focus();
+    highlightWord(word, r, c);
+}
+
+function moveNext(r, c, dir, backward) {
+    var word = getWordAt(r, c, dir);
+    if (!word) return;
+    var cells = wordCells(word);
+    var idx = cells.findIndex(function (rc) { return rc[0] === r && rc[1] === c; });
+    var nextIdx = backward ? idx - 1 : idx + 1;
+    if (nextIdx >= 0 && nextIdx < cells.length) {
+        focusCell(cells[nextIdx][0], cells[nextIdx][1], dir);
+    }
+}
+
+// === EVENTS ===
+for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+        (function (r, c) {
+            var input = inputs[r][c];
+            if (!input) return;
+
+            input.addEventListener('focus', function () {
+                var word = getWordAt(r, c, currentDir);
+                if (word) currentDir = word.dir;
+                highlightWord(word, r, c);
+            });
+
+            input.addEventListener('click', function () {
+                var cw = cellWords[r][c];
+                if (cw.A && cw.D) {
+                    currentDir = (currentDir === 'A') ? 'D' : 'A';
+                }
+                var word = getWordAt(r, c, currentDir);
+                if (word) currentDir = word.dir;
+                highlightWord(word, r, c);
+            });
+
+            input.addEventListener('input', function () {
+                var val = stripAccents(input.value).toUpperCase().replace(/[^Α-ΩA-Z]/g, '');
+                input.value = val.slice(-1);
+                input.classList.remove('correct', 'incorrect');
+                saveProgress();
+                if (input.value) setTimeout(function () { moveNext(r, c, currentDir, false); }, 0);
+                checkComplete();
+            });
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Backspace' && !input.value) {
+                    moveNext(r, c, currentDir, true);
+                } else if (e.key === 'ArrowRight') {
+                    if (inputs[r][c + 1]) focusCell(r, c + 1, 'A');
+                } else if (e.key === 'ArrowLeft') {
+                    if (inputs[r][c - 1]) focusCell(r, c - 1, 'A');
+                } else if (e.key === 'ArrowDown') {
+                    if (r + 1 < ROWS && inputs[r + 1][c]) focusCell(r + 1, c, 'D');
+                } else if (e.key === 'ArrowUp') {
+                    if (r - 1 >= 0 && inputs[r - 1][c]) focusCell(r - 1, c, 'D');
+                }
+            });
+        })(r, c);
+    }
+}
+
+// === CLUES ===
+var acrossEl = document.getElementById('acrossClues');
+var downEl = document.getElementById('downClues');
+
+WORDS.slice().sort(function (a, b) { return a.num - b.num; }).forEach(function (w) {
+    var item = document.createElement('div');
+    item.className = 'clue-item';
+    item.dataset.num = w.num;
+    item.dataset.dir = w.dir;
+    item.innerHTML = '<b>' + w.num + '.</b> ' + w.clue + ' (' + w.answer.length + ')';
+    item.addEventListener('click', function () {
+        currentDir = w.dir;
+        focusCell(w.row, w.col, w.dir);
+    });
+    (w.dir === 'A' ? acrossEl : downEl).appendChild(item);
+});
+
+// === CHECK / REVEAL / CLEAR ===
+var statusEl = document.getElementById('status');
+
+function checkComplete() {
+    for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+            if (solution[r][c] === null) continue;
+            var v = inputs[r][c].value;
+            if (v !== solution[r][c]) return false;
+        }
+    }
+    statusEl.textContent = '🎉 Συγχαρητήρια! Λύσατε το σταυρόλεξο!';
+    return true;
+}
+
+document.getElementById('checkBtn').addEventListener('click', function () {
+    var allFilled = true, allCorrect = true;
+    for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+            if (solution[r][c] === null) continue;
+            var input = inputs[r][c];
+            if (!input.value) { allFilled = false; continue; }
+            if (input.value === solution[r][c]) {
+                input.classList.remove('incorrect');
+                input.classList.add('correct');
+            } else {
+                input.classList.remove('correct');
+                input.classList.add('incorrect');
+                allCorrect = false;
+            }
+        }
+    }
+    if (!allFilled) {
+        statusEl.textContent = 'Συνέχισε! Λείπουν ακόμα κελιά.';
+    } else if (allCorrect) {
+        statusEl.textContent = '🎉 Συγχαρητήρια! Λύσατε το σταυρόλεξο!';
+    } else {
+        statusEl.textContent = 'Υπάρχουν λάθη — δοκίμασε ξανά.';
+    }
+});
+
+document.getElementById('revealBtn').addEventListener('click', function () {
+    for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+            if (solution[r][c] === null) continue;
+            inputs[r][c].value = solution[r][c];
+            inputs[r][c].classList.remove('incorrect');
+            inputs[r][c].classList.add('correct');
+        }
+    }
+    statusEl.textContent = 'Εμφανίστηκε η λύση.';
+    saveProgress();
+});
+
+document.getElementById('clearBtn').addEventListener('click', function () {
+    for (var r = 0; r < ROWS; r++) {
+        for (var c = 0; c < COLS; c++) {
+            if (solution[r][c] === null) continue;
+            inputs[r][c].value = '';
+            inputs[r][c].classList.remove('correct', 'incorrect');
+        }
+    }
+    statusEl.textContent = '';
+    localStorage.removeItem(STORAGE_KEY);
+});
+
+// === PERSISTENCE ===
+function saveProgress() {
+    var data = [];
+    for (var r = 0; r < ROWS; r++) {
+        var row = [];
+        for (var c = 0; c < COLS; c++) {
+            row.push(inputs[r][c] ? inputs[r][c].value : '');
+        }
+        data.push(row);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadProgress() {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+        var data = JSON.parse(raw);
+        for (var r = 0; r < ROWS; r++) {
+            for (var c = 0; c < COLS; c++) {
+                if (inputs[r][c] && data[r] && data[r][c]) {
+                    inputs[r][c].value = data[r][c];
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+loadProgress();
+
+// Prevent double-tap zoom
+document.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1) e.preventDefault();
+}, {passive: false});
+
+console.log('Σταυρόλεξο loaded');
+</script>
+
+</body>
+</html>

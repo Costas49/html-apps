@@ -1,300 +1,527 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="el">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Παγκόσμιος Μεταφραστής</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#0f1216; --panel:#191e26; --panel2:#222936; --line:#2c3543;
-    --ink:#f1ede5; --muted:#8b95a7; --acc:#7fb4ff; --acc2:#ffd479; --radius:14px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,sans-serif;min-height:100vh;padding-bottom:30px}
-  header{padding:16px 20px 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-  header h1{font-size:1.15rem;font-weight:700}
-  header span{font-family:'DM Mono',monospace;color:var(--acc);font-size:.78rem;letter-spacing:.12em}
-  .langs{display:flex;gap:8px;padding:0 20px 10px;align-items:center;flex-wrap:wrap}
-  select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:var(--radius);padding:11px 12px;font-family:inherit;font-size:.9rem;flex:1;min-width:130px}
-  .swap{background:var(--panel);border:1px solid var(--line);color:var(--acc);border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;flex:none}
-  .box{margin:0 20px 10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
-  .box label{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.1em;display:block;margin-bottom:6px}
-  textarea{width:100%;background:transparent;border:none;color:var(--ink);font-family:inherit;font-size:1.05rem;resize:vertical;min-height:70px;outline:none}
-  .out{font-size:1.15rem;min-height:1.6em;word-break:break-word}
-  .phon{font-size:1rem;color:var(--acc2);min-height:1.4em;word-break:break-word}
-  .phon.lat{color:var(--muted);font-size:.85rem;font-family:'DM Mono',monospace}
-  .actions{display:flex;gap:8px;padding:0 20px 12px;flex-wrap:wrap}
-  button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:var(--radius);padding:12px 16px;font-size:.9rem;cursor:pointer;font-family:inherit}
-  button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-  button.primary{border-color:var(--acc);color:var(--acc);flex:1;min-width:150px}
-  button:disabled{opacity:.45;cursor:default}
-  .status{padding:0 20px 10px;font-size:.85rem;color:var(--muted);min-height:1.4em}
-  .status.err{color:#ff9b9b}
-  .status.ok{color:#8fe3c0}
-  .hist{margin:6px 20px;border-top:1px solid var(--line);padding-top:10px}
-  .hist h2{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em;margin-bottom:8px}
-  .hitem{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;font-size:.85rem;cursor:pointer}
-  .hitem .a{color:var(--muted)}
-  .hitem .b{color:var(--ink)}
-  .key-btn{font-size:.8rem;padding:8px 12px;border-color:var(--muted);}
-  .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,18,22,0.9);z-index:1000;align-items:center;justify-content:center;padding:20px}
-  .modal.active{display:flex}
-  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;max-width:400px;width:100%}
-  .modal-box h2{margin-bottom:12px;color:var(--ink)}
-  .modal-box p{margin-bottom:16px;color:var(--muted);font-size:.9rem}
-  .modal-box input{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);color:var(--ink);font-family:monospace;font-size:.85rem;margin-bottom:12px}
-  .modal-box .actions{gap:8px}
-  .modal-box button{flex:1}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.mymemory.translated.net; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Παγκόσμιος Μεταφραστής</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1216;
+      --panel: #191e26;
+      --panel-2: #222936;
+      --line: #344052;
+      --ink: #f6f2e9;
+      --muted: #aeb8c8;
+      --accent: #7fb4ff;
+      --ok: #8fe3c0;
+      --error: #ffaaaa;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+    }
+
+    main {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: 18px 18px 36px;
+    }
+
+    header { margin-bottom: 16px; }
+    h1 { margin: 0 0 6px; font-size: clamp(1.35rem, 5vw, 2rem); }
+    h2 { margin: 0; font-size: 1rem; }
+    p { margin: 0; }
+
+    .sub,
+    .privacy,
+    .counter { color: var(--muted); }
+
+    .sub { line-height: 1.5; }
+
+    .language-row,
+    .actions,
+    .history-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .language-row { margin-bottom: 12px; }
+    .language-field { flex: 1; min-width: 0; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: .88rem;
+      font-weight: 600;
+    }
+
+    select,
+    textarea,
+    button {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      font: inherit;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    select { min-height: 48px; padding: 10px 12px; }
+
+    textarea {
+      min-height: 120px;
+      padding: 13px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    button {
+      min-height: 46px;
+      padding: 10px 15px;
+      background: var(--panel-2);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--accent); }
+    button:disabled { opacity: .48; cursor: default; }
+
+    button:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .swap {
+      width: 48px;
+      flex: 0 0 48px;
+      margin-top: 25px;
+      color: var(--accent);
+      font-size: 1.2rem;
+    }
+
+    .card {
+      margin-bottom: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .counter { margin-top: 6px; text-align: right; font-size: .82rem; }
+    .counter.over { color: var(--error); }
+
+    .actions { flex-wrap: wrap; margin-bottom: 12px; }
+    .actions button { flex: 1; min-width: 120px; }
+    .primary { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+    .output {
+      min-height: 3.2rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 1.08rem;
+      line-height: 1.55;
+    }
+
+    .status {
+      min-height: 1.5rem;
+      margin-bottom: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.error { color: var(--error); }
+
+    .privacy {
+      margin-bottom: 20px;
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+
+    .history {
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .history-head { justify-content: space-between; margin-bottom: 10px; }
+    .small { min-height: 38px; padding: 7px 11px; font-size: .84rem; }
+
+    .history-item {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 11px 12px;
+      text-align: left;
+      line-height: 1.45;
+    }
+
+    .history-item span { display: block; overflow-wrap: anywhere; }
+    .history-item .source { color: var(--muted); }
+    .history-item .target { color: var(--ink); }
+
+    @media (max-width: 560px) {
+      main { padding-inline: 14px; }
+      .language-row { display: grid; grid-template-columns: 1fr 48px; }
+      .language-field:last-child { grid-column: 1 / -1; }
+      .swap { grid-column: 2; grid-row: 1; }
+    }
+  </style>
 </head>
 <body>
+  <main>
+    <header>
+      <h1>Παγκόσμιος Μεταφραστής</h1>
+      <p class="sub">Δωρεάν μετάφραση χωρίς λογαριασμό ή API key.</p>
+    </header>
 
-<header>
-  <h1>ΠΑΓΚΟΣΜΙΟΣ ΜΕΤΑΦΡΑΣΤΗΣ</h1>
-  <span>ΟΛΕΣ ΟΙ ΓΛΩΣΣΕΣ · ΑΚΡΙΒΗ ΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ · ΦΩΝΗ</span>
-</header>
+    <section aria-label="Επιλογή γλωσσών">
+      <div class="language-row">
+        <div class="language-field">
+          <label for="from">Από</label>
+          <select id="from"></select>
+        </div>
+        <button class="swap" id="swap" type="button" aria-label="Αντιστροφή γλωσσών" title="Αντιστροφή γλωσσών">⇄</button>
+        <div class="language-field">
+          <label for="to">Προς</label>
+          <select id="to"></select>
+        </div>
+      </div>
+    </section>
 
-<div class="langs">
-  <select id="from">
-    <option value="auto" selected>🌐 Αυτόματη ανίχνευση</option>
-  </select>
-  <button class="swap" id="swap" title="Αντιστροφή γλωσσών">⇄</button>
-  <select id="to"></select>
-  <button class="key-btn" id="keyBtn" title="Αλλαγή API key">🔑</button>
-</div>
+    <section class="card">
+      <label for="src">Κείμενο</label>
+      <textarea id="src" placeholder="Γράψε το κείμενο που θέλεις να μεταφράσεις…"></textarea>
+      <p class="counter" id="counter">0 / 500 bytes</p>
+    </section>
 
-<div class="box">
-  <label>ΚΕΙΜΕΝΟ</label>
-  <textarea id="src" placeholder="Γράψε κείμενο…"></textarea>
-</div>
-
-<div class="actions">
-  <button class="primary" id="go">🌍 Μετάφραση</button>
-  <button id="clear">✕</button>
-</div>
-
-<div class="box">
-  <label>ΜΕΤΑΦΡΑΣΗ <span id="detlang"></span></label>
-  <div class="out" id="out">—</div>
-</div>
-
-<div class="box">
-  <label>ΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ (πώς προφέρεται) — ΑΚΡΙΒΗ</label>
-  <div class="phon" id="gr">—</div>
-  <div class="phon lat" id="lat"></div>
-</div>
-
-<div class="actions">
-  <button id="speak" disabled>🔊 Εκφώνηση</button>
-  <button id="copy" disabled>📋 Αντιγραφή</button>
-  <button id="save" disabled>💾 Αποθήκευση</button>
-</div>
-
-<div class="status" id="status">Έτοιμος.</div>
-
-<div class="hist" id="histwrap" style="display:none">
-  <h2>ΙΣΤΟΡΙΚΟ</h2>
-  <div id="hist"></div>
-</div>
-
-<div class="modal" id="keyModal">
-  <div class="modal-box">
-    <h2>Claude API Key</h2>
-    <p>Βάλε το API key σου από <strong>platform.anthropic.com/account/keys</strong></p>
-    <input type="password" id="keyInput" placeholder="sk_live_..." />
     <div class="actions">
-      <button class="primary" id="keySave">Αποθήκευση</button>
-      <button id="keyCancel">Ακύρωση</button>
+      <button class="primary" id="go" type="button">Μετάφραση</button>
+      <button id="clear" type="button">Καθαρισμός</button>
     </div>
-  </div>
-</div>
 
-<script>
-const $=id=>document.getElementById(id);
-const LANGS=[
- ["en","Αγγλικά"],["fr","Γαλλικά"],["de","Γερμανικά"],["it","Ιταλικά"],["es","Ισπανικά"],
- ["pt","Πορτογαλικά"],["ru","Ρωσικά"],["uk","Ουκρανικά"],["tr","Τουρκικά"],["ar","Αραβικά"],
- ["he","Εβραϊκά"],["zh","Κινεζικά"],["ja","Ιαπωνικά"],["ko","Κορεατικά"],["hi","Χίντι"],
- ["bn","Μπενγκάλι"],["ur","Ούρντου"],["fa","Περσικά"],["nl","Ολλανδικά"],["sv","Σουηδικά"],
- ["no","Νορβηγικά"],["da","Δανικά"],["fi","Φινλανδικά"],["pl","Πολωνικά"],["cs","Τσεχικά"],
- ["ro","Ρουμανικά"],["bg","Βουλγαρικά"],["sr","Σερβικά"],["sq","Αλβανικά"],["hu","Ουγγρικά"],
- ["vi","Βιετναμικά"],["th","Ταϊλανδικά"],["id","Ινδονησιακά"],["ms","Μαλαισιανά"],["sw","Σουαχίλι"],
- ["el","Ελληνικά"]
-];
+    <section class="card" aria-labelledby="resultLabel">
+      <label id="resultLabel">Μετάφραση</label>
+      <div class="output" id="out" role="region" aria-live="polite">—</div>
+    </section>
 
-for(const [c,n] of LANGS){
-  $('from').add(new Option(n,c));
-  $('to').add(new Option(n,c));
-}
-$('to').value='en';
+    <div class="actions">
+      <button id="speak" type="button" disabled>🔊 Προφορά</button>
+      <button id="copy" type="button" disabled>📋 Αντιγραφή</button>
+      <button id="save" type="button" disabled>💾 Αποθήκευση</button>
+    </div>
 
-let last=null, hist=[];
+    <p class="status" id="status" role="status" aria-live="polite">Έτοιμος.</p>
+    <p class="privacy">Το κείμενο στέλνεται στην υπηρεσία MyMemory για τη μετάφραση. Η δωρεάν ανώνυμη χρήση έχει όριο 5.000 χαρακτήρων την ημέρα. Το ιστορικό μένει μόνο σε αυτή τη συσκευή.</p>
 
-function setStatus(m,cls){const s=$('status');s.textContent=m;s.className='status'+(cls?' '+cls:'');}
+    <section class="history" id="historySection" hidden>
+      <div class="history-head">
+        <h2>Ιστορικό</h2>
+        <button class="small" id="clearHistory" type="button">Καθαρισμός ιστορικού</button>
+      </div>
+      <div id="historyList"></div>
+    </section>
+  </main>
 
-function getApiKey(){
-  return localStorage.getItem('anthropic_api_key');
-}
+  <script>
+    const $ = id => document.getElementById(id);
+    const HISTORY_KEY = 'world_translator_history_v2';
+    const MAX_BYTES = 500;
+    const encoder = new TextEncoder();
 
-function setApiKey(key){
-  localStorage.setItem('anthropic_api_key',key);
-  setStatus('API key αποθηκεύτηκε.','ok');
-}
+    const LANGS = [
+      ['el', 'Ελληνικά', 'el-GR'], ['en', 'Αγγλικά', 'en-US'], ['fr', 'Γαλλικά', 'fr-FR'],
+      ['de', 'Γερμανικά', 'de-DE'], ['it', 'Ιταλικά', 'it-IT'], ['es', 'Ισπανικά', 'es-ES'],
+      ['pt', 'Πορτογαλικά', 'pt-PT'], ['ru', 'Ρωσικά', 'ru-RU'], ['uk', 'Ουκρανικά', 'uk-UA'],
+      ['tr', 'Τουρκικά', 'tr-TR'], ['ar', 'Αραβικά', 'ar-SA'], ['he', 'Εβραϊκά', 'he-IL'],
+      ['zh', 'Κινεζικά', 'zh-CN'], ['ja', 'Ιαπωνικά', 'ja-JP'], ['ko', 'Κορεατικά', 'ko-KR'],
+      ['hi', 'Χίντι', 'hi-IN'], ['bn', 'Μπενγκάλι', 'bn-BD'], ['ur', 'Ούρντου', 'ur-PK'],
+      ['fa', 'Περσικά', 'fa-IR'], ['nl', 'Ολλανδικά', 'nl-NL'], ['sv', 'Σουηδικά', 'sv-SE'],
+      ['no', 'Νορβηγικά', 'nb-NO'], ['da', 'Δανικά', 'da-DK'], ['fi', 'Φινλανδικά', 'fi-FI'],
+      ['pl', 'Πολωνικά', 'pl-PL'], ['cs', 'Τσεχικά', 'cs-CZ'], ['ro', 'Ρουμανικά', 'ro-RO'],
+      ['bg', 'Βουλγαρικά', 'bg-BG'], ['sr', 'Σερβικά', 'sr-RS'], ['sq', 'Αλβανικά', 'sq-AL'],
+      ['hu', 'Ουγγρικά', 'hu-HU'], ['vi', 'Βιετναμικά', 'vi-VN'], ['th', 'Ταϊλανδικά', 'th-TH'],
+      ['id', 'Ινδονησιακά', 'id-ID'], ['ms', 'Μαλαισιανά', 'ms-MY'], ['sw', 'Σουαχίλι', 'sw-KE']
+    ];
 
-$('keyBtn').addEventListener('click',()=>{
-  $('keyInput').value=getApiKey()||'';
-  $('keyModal').classList.add('active');
-});
-
-$('keySave').addEventListener('click',()=>{
-  const key=$('keyInput').value.trim();
-  if(!key){setStatus('Βάλε ένα API key.','err');return;}
-  setApiKey(key);
-  $('keyModal').classList.remove('active');
-});
-
-$('keyCancel').addEventListener('click',()=>{
-  $('keyModal').classList.remove('active');
-});
-
-$('keyInput').addEventListener('keydown',e=>{if(e.key==='Enter'){$('keySave').click();}});
-
-$('go').addEventListener('click',translate);
-$('src').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();translate();}});
-$('clear').addEventListener('click',()=>{$('src').value='';$('src').focus();});
-$('swap').addEventListener('click',()=>{
-  const f=$('from').value,t=$('to').value;
-  if(f==='auto'){ if(last&&last.detCode){$('from').value=t;$('to').value=last.detCode==='el'?'en':last.detCode;} return; }
-  $('from').value=t;
-  $('to').value=f;
-});
-
-async function translate(){
-  const text=$('src').value.trim();
-  if(!text){setStatus('Γράψε πρώτα κείμενο.','err');return;}
-  
-  const apiKey=getApiKey();
-  if(!apiKey){
-    setStatus('Χρειάζεται API key — πάτησε το 🔑 κουμπί.','err');
-    $('keyModal').classList.add('active');
-    return;
-  }
-
-  const from=$('from').value, to=$('to').value;
-  const toName=LANGS.find(l=>l[0]===to)?.[1]||to;
-  setStatus('Μετάφραση…');
-  $('go').disabled=true;
-  
-  try{
-    const sys=`Είσαι μεταφραστής. Απάντησε ΜΟΝΟ με JSON, χωρίς markdown:
-{"detected":"όνομα γλώσσας εισόδου στα ελληνικά","detected_code":"iso κωδικός π.χ. en",
-"translation":"η μετάφραση",
-"greek_phonetic":"η προφορά της μετάφρασης γραμμένη με ελληνικά γράμματα, με τόνους εκεί που τονίζεται",
-"latin_phonetic":"η προφορά με λατινικούς χαρακτήρες"}
-Αν η μετάφραση είναι στα ελληνικά, το greek_phonetic = ίδιο με τη μετάφραση.`;
-    
-    const usr=(from==='auto'
-      ?`Μετάφρασε στα ${toName} το κείμενο:\n${text}`
-      :`Μετάφρασε από ${LANGS.find(l=>l[0]===from)?.[1]||from} στα ${toName} το κείμενο:\n${text}`);
-    
-    const r=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({
-        model:"claude-opus-4-6",
-        max_tokens:1000,
-        system:sys,
-        messages:[{role:"user",content:usr}]
-      })
-    });
-    
-    if(!r.ok){
-      if(r.status===401) throw new Error('API_KEY_INVALID');
-      throw new Error('HTTP_'+r.status);
+    for (const [code, name] of LANGS) {
+      $('from').add(new Option(name, code));
+      $('to').add(new Option(name, code));
     }
-    
-    const d=await r.json();
-    if(d.type==='error') throw new Error(d.error.message||'API_ERROR');
-    
-    const raw=(d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
-    if(!raw) throw new Error('EMPTY');
-    
-    const j=JSON.parse(raw.replace(/```json|```/g,'').trim());
-    
-    last={text,to,trans:j.translation,gr:j.greek_phonetic,lat:j.latin_phonetic,det:j.detected,detCode:j.detected_code};
-    $('out').textContent=j.translation||'—';
-    $('gr').textContent=j.greek_phonetic||'—';
-    $('lat').textContent=j.latin_phonetic?('['+j.latin_phonetic+']'):'';
-    $('detlang').textContent=(from==='auto'&&j.detected)?('· ανιχνεύθηκε: '+j.detected):'';
-    ['speak','copy','save'].forEach(i=>$(i).disabled=false);
-    setStatus('Έτοιμο.','ok');
-    hist.unshift(last); if(hist.length>12)hist.length=12; renderHist();
-  }catch(e){
-    const m=e.message||'';
-    if(m==='API_KEY_INVALID') setStatus('Το API key δεν είναι σωστό. Πάτησε 🔑 και δοκίμασε ξανά.','err');
-    else if(m.startsWith('HTTP_401')) setStatus('Unauthorized — έλεγξε το API key.','err');
-    else setStatus('Σφάλμα: '+m,'err');
-    console.error(e);
-  }
-  $('go').disabled=false;
-}
+    $('from').value = 'el';
+    $('to').value = 'en';
 
-function renderHist(){
-  $('histwrap').style.display='block';
-  const h=$('hist'); h.innerHTML='';
-  hist.forEach(item=>{
-    const div=document.createElement('div');
-    div.className='hitem';
-    div.innerHTML='<span class="a"></span> → <span class="b"></span>';
-    div.querySelector('.a').textContent=item.text.slice(0,40);
-    div.querySelector('.b').textContent=(item.trans||'').slice(0,40);
-    div.addEventListener('click',()=>{
-      $('src').value=item.text;$('out').textContent=item.trans;
-      $('gr').textContent=item.gr;$('lat').textContent=item.lat?('['+item.lat+']'):'';
-      last=item;['speak','copy','save'].forEach(i=>$(i).disabled=false);
+    let last = null;
+    let history = loadHistory();
+
+    function setStatus(message, kind = '') {
+      $('status').textContent = message;
+      $('status').className = 'status' + (kind ? ' ' + kind : '');
+    }
+
+    function byteLength(value) {
+      return encoder.encode(value).length;
+    }
+
+    function updateCounter() {
+      const bytes = byteLength($('src').value.trim());
+      $('counter').textContent = bytes + ' / ' + MAX_BYTES + ' bytes';
+      $('counter').classList.toggle('over', bytes > MAX_BYTES);
+      return bytes;
+    }
+
+    function languageName(code) {
+      return LANGS.find(item => item[0] === code)?.[1] || code;
+    }
+
+    function speechLocale(code) {
+      return LANGS.find(item => item[0] === code)?.[2] || code;
+    }
+
+    function decodeEntities(value) {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = value;
+      return textarea.value;
+    }
+
+    function loadHistory() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        return Array.isArray(saved) ? saved.slice(0, 12) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function storeHistory() {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      } catch {
+        setStatus('Η μετάφραση έγινε, αλλά το ιστορικό δεν αποθηκεύτηκε.', 'error');
+      }
+    }
+
+    function setResult(item) {
+      last = item;
+      $('out').textContent = item.translatedText;
+      $('out').lang = speechLocale(item.to);
+      ['speak', 'copy', 'save'].forEach(id => { $(id).disabled = false; });
+    }
+
+    function resetResult() {
+      last = null;
+      $('out').textContent = '—';
+      $('out').removeAttribute('lang');
+      ['speak', 'copy', 'save'].forEach(id => { $(id).disabled = true; });
+    }
+
+    function addToHistory(item) {
+      history = history.filter(entry => !(entry.text === item.text && entry.from === item.from && entry.to === item.to));
+      history.unshift(item);
+      history = history.slice(0, 12);
+      storeHistory();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      $('historySection').hidden = history.length === 0;
+      const list = $('historyList');
+      list.replaceChildren();
+
+      for (const item of history) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'history-item';
+        button.setAttribute('aria-label', 'Άνοιγμα αποθηκευμένης μετάφρασης');
+
+        const source = document.createElement('span');
+        source.className = 'source';
+        source.textContent = languageName(item.from) + ': ' + item.text.slice(0, 80);
+
+        const target = document.createElement('span');
+        target.className = 'target';
+        target.textContent = languageName(item.to) + ': ' + item.translatedText.slice(0, 80);
+
+        button.append(source, target);
+        button.addEventListener('click', () => {
+          $('from').value = item.from;
+          $('to').value = item.to;
+          $('src').value = item.text;
+          updateCounter();
+          setResult(item);
+          setStatus('Η μετάφραση φορτώθηκε από το ιστορικό.', 'ok');
+        });
+        list.appendChild(button);
+      }
+    }
+
+    async function translate() {
+      const text = $('src').value.trim();
+      const from = $('from').value;
+      const to = $('to').value;
+
+      if (!text) {
+        setStatus('Γράψε πρώτα ένα κείμενο.', 'error');
+        $('src').focus();
+        return;
+      }
+
+      if (from === to) {
+        setStatus('Διάλεξε δύο διαφορετικές γλώσσες.', 'error');
+        return;
+      }
+
+      if (updateCounter() > MAX_BYTES) {
+        setStatus('Το κείμενο είναι μεγαλύτερο από το όριο των 500 bytes.', 'error');
+        return;
+      }
+
+      $('go').disabled = true;
+      setStatus('Γίνεται μετάφραση…');
+
+      try {
+        const params = new URLSearchParams({ q: text, langpair: from + '|' + to });
+        const response = await fetch('https://api.mymemory.translated.net/get?' + params.toString());
+        if (!response.ok) throw new Error('HTTP_' + response.status);
+
+        const data = await response.json();
+        if (data.quotaFinished) throw new Error('QUOTA');
+        if (Number(data.responseStatus) !== 200 || !data.responseData?.translatedText) {
+          throw new Error(data.responseDetails || 'API_ERROR');
+        }
+
+        const item = {
+          text,
+          from,
+          to,
+          translatedText: decodeEntities(data.responseData.translatedText),
+          savedAt: Date.now()
+        };
+
+        setResult(item);
+        addToHistory(item);
+        setStatus('Η μετάφραση ολοκληρώθηκε.', 'ok');
+      } catch (error) {
+        if (error.message === 'QUOTA') {
+          setStatus('Εξαντλήθηκε το σημερινό δωρεάν όριο. Δοκίμασε ξανά αύριο.', 'error');
+        } else if (error.message === 'HTTP_429') {
+          setStatus('Έγιναν πολλές μεταφράσεις. Περίμενε λίγο και ξαναδοκίμασε.', 'error');
+        } else {
+          setStatus('Η μετάφραση απέτυχε. Έλεγξε τη σύνδεση και δοκίμασε ξανά.', 'error');
+        }
+        console.error(error);
+      } finally {
+        $('go').disabled = false;
+      }
+    }
+
+    $('src').addEventListener('input', updateCounter);
+    $('src').addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        translate();
+      }
     });
-    h.appendChild(div);
-  });
-}
 
-$('speak').addEventListener('click',()=>{
-  if(!last)return;
-  if(!('speechSynthesis' in window)){setStatus('Η συσκευή δεν υποστηρίζει εκφώνηση.','err');return;}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(last.trans);
-  u.lang=last.to;
-  const vs=speechSynthesis.getVoices();
-  const v=vs.find(v=>v.lang.toLowerCase().startsWith(last.to))||vs.find(v=>v.lang.toLowerCase().slice(0,2)===last.to.slice(0,2));
-  if(v)u.voice=v;
-  u.rate=0.95;
-  u.onend=()=>setStatus('Έτοιμο.','ok');
-  speechSynthesis.speak(u);
-  setStatus('Εκφώνηση…');
-});
-if('speechSynthesis' in window) speechSynthesis.getVoices();
+    $('go').addEventListener('click', translate);
 
-$('copy').addEventListener('click',async()=>{
-  if(!last)return;
-  try{
-    await navigator.clipboard.writeText(last.trans+'\n'+last.gr);
-    setStatus('Αντιγράφηκε.','ok');
-  }catch(e){setStatus('Σφάλμα αντιγραφής.','err');}
-});
+    $('clear').addEventListener('click', () => {
+      $('src').value = '';
+      updateCounter();
+      resetResult();
+      setStatus('Έτοιμος.');
+      $('src').focus();
+    });
 
-$('save').addEventListener('click',()=>{
-  if(!last)return;
-  const content='ΚΕΙΜΕΝΟ:\n'+last.text+'\n\nΜΕΤΑΦΡΑΣΗ ('+(LANGS.find(l=>l[0]===last.to)?.[1]||last.to)+'):\n'+last.trans+'\n\nΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ:\n'+last.gr+(last.lat?('\n\nΛΑΤΙΝΙΚΗ:\n'+last.lat):'');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'}));
-  const d=new Date(),pad=n=>String(n).padStart(2,'0');
-  a.download='metafrasi_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.txt';
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-  setStatus('Αποθηκεύτηκε.','ok');
-});
+    $('swap').addEventListener('click', () => {
+      const previousFrom = $('from').value;
+      $('from').value = $('to').value;
+      $('to').value = previousFrom;
 
-if(getApiKey()) setStatus('Έτοιμος — API key φορτώθηκε.','ok');
-</script>
+      if (last && last.from === previousFrom && last.to === $('from').value) {
+        $('src').value = last.translatedText;
+        updateCounter();
+        resetResult();
+      }
+      setStatus('Οι γλώσσες αντιστράφηκαν.');
+    });
+
+    $('speak').addEventListener('click', () => {
+      if (!last) return;
+      if (!('speechSynthesis' in window)) {
+        setStatus('Η συσκευή δεν υποστηρίζει εκφώνηση.', 'error');
+        return;
+      }
+
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(last.translatedText);
+      utterance.lang = speechLocale(last.to);
+      utterance.rate = 0.95;
+      const voices = speechSynthesis.getVoices();
+      const voice = voices.find(item => item.lang.toLowerCase().startsWith(last.to.toLowerCase()));
+      if (voice) utterance.voice = voice;
+      utterance.onstart = () => setStatus('Ακούγεται η προφορά…');
+      utterance.onend = () => setStatus('Έτοιμος.', 'ok');
+      utterance.onerror = () => setStatus('Δεν βρέθηκε κατάλληλη φωνή στη συσκευή.', 'error');
+      speechSynthesis.speak(utterance);
+    });
+
+    $('copy').addEventListener('click', async () => {
+      if (!last) return;
+      try {
+        await navigator.clipboard.writeText(last.translatedText);
+        setStatus('Η μετάφραση αντιγράφηκε.', 'ok');
+      } catch {
+        setStatus('Η αντιγραφή δεν επιτρέπεται από αυτόν τον browser.', 'error');
+      }
+    });
+
+    $('save').addEventListener('click', () => {
+      if (!last) return;
+      const content = [
+        'ΑΠΟ ' + languageName(last.from) + ':',
+        last.text,
+        '',
+        'ΠΡΟΣ ' + languageName(last.to) + ':',
+        last.translatedText
+      ].join('\n');
+      const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'metafrasi-' + new Date().toISOString().slice(0, 10) + '.txt';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus('Το αρχείο αποθηκεύτηκε.', 'ok');
+    });
+
+    $('clearHistory').addEventListener('click', () => {
+      history = [];
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+      setStatus('Το ιστορικό καθαρίστηκε.', 'ok');
+    });
+
+    updateCounter();
+    renderHistory();
+  </script>
 </body>
 </html>

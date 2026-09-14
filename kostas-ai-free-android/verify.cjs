@@ -1,0 +1,34 @@
+const fs=require('fs'),assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:600,height:900}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const html=fs.readFileSync('app/src/main/assets/index.html','utf8');
+ let scenario='ok',calls=0;
+ await page.route('https://appassets.androidplatform.net/**',r=>r.fulfill({contentType:'text/html',body:html}));
+ await page.route('https://generativelanguage.googleapis.com/**',async r=>{
+  if(r.request().method()==='OPTIONS')return r.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}});
+  calls++;
+  const headers={'access-control-allow-origin':'*','content-type':'application/json'};
+  if(r.request().method()==='GET')return r.fulfill({headers,body:JSON.stringify({models:[{name:'models/gemini-2.5-flash-lite',supportedGenerationMethods:['generateContent']}]})});
+  if(scenario==='quota')return r.fulfill({status:429,headers,body:JSON.stringify({error:{details:[{retryDelay:'2s'}]}})});
+  if(scenario==='error')return r.fulfill({status:403,headers,body:JSON.stringify({error:{message:'API key not valid'}})});
+  return r.fulfill({headers,body:JSON.stringify({candidates:[{content:{parts:[{text:'Καλησπέρα Κώστα!'}]},finishReason:'STOP'}]})});
+ });
+ await page.goto('https://appassets.androidplatform.net/assets/index.html');
+ await page.click('#send');assert.match(await page.textContent('#status'),/Λείπει/);assert.equal(calls,0);
+ await page.fill('#key','test-key-not-a-real-secret');
+ await page.click('#send');assert.match(await page.textContent('#status'),/κουτάκι/);assert.equal(calls,0);
+ await page.check('#free');await page.fill('#prompt','Καλησπέρα');await page.click('#send');
+ await page.waitForFunction(()=>document.querySelector('#answer').textContent==='Καλησπέρα Κώστα!');
+ await page.waitForFunction(()=>!document.querySelector('#send').disabled);
+ assert.equal(calls,1);
+ await page.click('#check');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Η πρόσβαση'));assert.equal(await page.locator('#model option').count(),1);
+ scenario='error';await page.click('#send');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('HTTP 403'));assert.equal(await page.inputValue('#prompt'),'Καλησπέρα');
+ scenario='quota';await page.click('#send');await page.waitForFunction(()=>document.querySelector('#clock').textContent.includes('Google'));assert.equal(await page.isDisabled('#send'),true);
+ await page.reload();assert.equal(await page.inputValue('#prompt'),'Καλησπέρα');assert.equal(await page.textContent('#answer'),'Καλησπέρα Κώστα!');
+ assert.equal(await page.inputValue('#key'),'');
+ assert.deepEqual(errors,[]);
+ await browser.close();console.log('PASS: missing key, billing confirmation, response, model listing, HTTP error, quota wait, local persistence, no JavaScript errors.');
+})().catch(e=>{console.error(e);process.exit(1)});

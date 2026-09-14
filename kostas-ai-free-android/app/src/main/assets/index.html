@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="el" dir="ltr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://generativelanguage.googleapis.com; img-src data:; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<title>Kostas AI Free</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b1423;color:#edf3ff;font:17px/1.55 system-ui,sans-serif}main{max-width:780px;margin:auto;padding:16px}
+h1{font-size:28px;margin:6px 0}h2{font-size:21px}.card{background:#172338;border:1px solid #30425d;border-radius:16px;padding:16px;margin:16px 0}
+label{display:block;margin:12px 0 6px}input:not([type=checkbox]),textarea,select,button{font:inherit;border-radius:10px;padding:12px;max-width:100%}input:not([type=checkbox]),textarea,select{width:100%;background:#0d192c;color:white;border:1px solid #52657e}
+textarea{min-height:145px;resize:vertical;direction:ltr;text-align:left;unicode-bidi:plaintext}button{border:0;background:#94d9c9;color:#08281f;min-height:48px;cursor:pointer}button.secondary{background:#30425e;color:white}button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.row>*{flex:1;min-width:120px}small,.muted{color:#bdcbe0}a{color:#99d9ff}
+#status{padding:12px;background:#0d192c;border-left:4px solid #94d9c9;white-space:pre-wrap;overflow-wrap:anywhere}
+#status.error{border-color:#ff9292;color:#ffd2d2}#answer{white-space:pre-wrap;overflow-wrap:anywhere;unicode-bidi:plaintext}
+input[type=checkbox]{width:20px;height:20px;vertical-align:middle}summary{cursor:pointer;font-weight:bold}:focus-visible{outline:3px solid #ffe4a0;outline-offset:3px}
+</style></head><body><main><h1>Kostas AI Free</h1><p class="muted">Προσωπικός βοηθός • Έκδοση 2.0</p>
+<details id="settings" class="card" open><summary>Σύνδεση και δωρεάν χρήση</summary>
+<p>Χρειάζεται δικό σου κλειδί Gemini API. Δεν απαιτείται συνδρομή ChatGPT. Η εφαρμογή δεν ελέγχει ούτε αλλάζει τη χρέωση του έργου σου.</p>
+<p><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Εύρεση / δημιουργία κλειδιού</a> · <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Έλεγχος ορίων και χρέωσης</a></p>
+<label for="key">Κλειδί API</label><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Επικόλλησε το κλειδί εδώ">
+<label><input id="remember" type="checkbox"> Αποθήκευση κλειδιού στη συσκευή</label>
+<small>Προαιρετική τοπική αποθήκευση χωρίς πρόσθετη κρυπτογράφηση. Το κλειδί αποστέλλεται μόνο στο API της Google.</small>
+<label><input id="free" type="checkbox"> Έλεγξα ότι το έργο είναι Free tier χωρίς ενεργή χρέωση.</label>
+<label for="model">Μοντέλο</label><select id="model"><option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option><option value="gemini-2.5-flash">gemini-2.5-flash</option></select>
+<small>Ο έλεγχος φορτώνει τα διαθέσιμα μοντέλα. Η παρουσία τους στη λίστα δεν επιβεβαιώνει δωρεάν όριο.</small>
+<div class="row"><button id="check">Έλεγχος / μοντέλα</button><button id="forget" class="secondary">Διαγραφή κλειδιού</button></div></details>
+<section class="card"><label for="mode">Τι θέλεις να κάνω;</label><select id="mode">
+<option value="ask">Απάντηση σε ερώτηση</option><option value="summary">Σύνοψη σε κεντρικές ιδέες</option><option value="explain">Εξήγηση με απλά λόγια</option><option value="priorities">Σειρά προτεραιότητας</option><option value="story">Ανάλυση story σε 7 μέρη</option></select>
+<label for="prompt">Ερώτηση ή κείμενο</label><textarea id="prompt" maxlength="30000" placeholder="Γράψε εδώ…"></textarea>
+<small>Έως 30.000 χαρακτήρες. Κάθε αποστολή είναι ανεξάρτητη.</small>
+<label for="file">Άνοιγμα κειμένου TXT</label><input id="file" type="file" accept=".txt,text/plain">
+<div class="row"><button id="send">Αποστολή</button><button id="stop" class="secondary" disabled>Διακοπή</button></div>
+<div id="status" role="status" aria-live="polite">Έτοιμο. Συμπλήρωσε το κλειδί στην ενότητα σύνδεσης.</div><p id="clock" class="muted"></p>
+<noscript>Δεν λειτουργεί η JavaScript. Ενεργοποίησέ τη για να χρησιμοποιήσεις την εφαρμογή.</noscript></section>
+<section class="card" id="answerCard"><h2>Απάντηση</h2><div id="answer" aria-live="polite">Η απάντηση θα εμφανιστεί εδώ.</div>
+<div class="row"><button id="export" class="secondary">Αποθήκευση TXT</button><button id="clear" class="secondary">Καθαρισμός</button></div><p id="storage" class="muted">Το πρόχειρο και η τελευταία απάντηση αποθηκεύονται τοπικά.</p></section>
+<details class="card"><summary>Δυνατότητες και όρια</summary>
+<p>Υποστηρίζονται κείμενο και TXT. Δεν περιλαμβάνονται άνοιγμα PDF ή ζωντανή αναζήτηση ιστοσελίδων.</p>
+<p>Η αντίστροφη μέτρηση ακολουθεί τον χρόνο που δίνει η Google. Για ρητό ημερήσιο όριο εκτιμά την επόμενη αλλαγή ημέρας στη ζώνη Ειρηνικού. Χωρίς πληροφορίες προτείνει παύση 60 δευτερολέπτων, χωρίς εγγύηση επαναφοράς.</p>
+<p>Δεν γίνονται αυτόματες επαναλήψεις. Μετά την αναμονή πατάς Αποστολή. Μηδενικό όριο ή προβληματικό κλειδί χρειάζονται έλεγχο στο AI Studio.</p>
+<p><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer">Όροι δεδομένων Google</a> · <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank" rel="noopener noreferrer">Όρια χρήσης</a></p></details></main>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id), PREFIX="kostas-free-v1-";
+let busy=false, controller=null, lastAnswer="", draftTimer, blocks={};
+function read(name,fallback){try{const v=localStorage.getItem(PREFIX+name);return v===null?fallback:JSON.parse(v);}catch(e){return fallback;}}
+function save(name,value){try{localStorage.setItem(PREFIX+name,JSON.stringify(value));return true;}catch(e){$("storage").textContent="Δεν επιτρέπεται τοπική αποθήκευση. Αποθήκευσε την απάντηση σε TXT.";return false;}}
+function remove(name){try{localStorage.removeItem(PREFIX+name);}catch(e){}}
+function showStatus(text,error){$("status").textContent=text;$("status").className=error?"error":"";}
+function reveal(id){$(id).scrollIntoView({behavior:"smooth",block:"center"});}
+function block(){const b=blocks[$("model").value];return b&&Number.isFinite(b.until)&&b.until>Date.now()?b:null;}
+function tick(){
+ const b=block();
+ ["key","model","mode","remember","free","forget","clear","check","file"].forEach(id=>$(id).disabled=busy);
+ $("prompt").readOnly=busy;$("send").disabled=busy||!!b;$("stop").disabled=!busy;
+ $("send").textContent=busy?"Επεξεργασία…":b?"Αναμονή…":"Αποστολή";
+ if(b){const s=Math.ceil((b.until-Date.now())/1000);$("clock").textContent=b.label+" — "+Math.floor(s/3600)+"ω "+Math.floor(s%3600/60)+"λ "+s%60+"δ";}
+ else $("clock").textContent="Δεν υπάρχει ενεργή τοπική αναμονή.";
+}
+function persistKey(){if($("remember").checked){if(!save("key",$("key").value.trim()))$("remember").checked=false;}else remove("key");}
+function setup(){
+ if(!$("key").value.trim()){$("settings").open=true;throw Error("Λείπει το κλειδί API. Συμπλήρωσέ το στην ενότητα σύνδεσης.");}
+ if(!$("free").checked){$("settings").open=true;throw Error("Έλεγξε στο AI Studio ότι το έργο είναι δωρεάν χωρίς ενεργή χρέωση και σημείωσε το κουτάκι επιβεβαίωσης.");}
+}
+function midnight(){
+ const f=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"});
+ let lo=Date.now(),hi=lo+27*3600000;const today=f.format(new Date(lo));
+ while(hi-lo>1000){const mid=Math.floor((lo+hi)/2);if(f.format(new Date(mid))===today)lo=mid;else hi=mid;}return hi+2000;
+}
+function quota(data,response){
+ const details=(data.error||{}).details||[];let seconds=0,zero=false;
+ details.forEach(d=>{(d.violations||[]).forEach(v=>{if(v.quotaValue===0||v.quotaValue==="0")zero=true;});const m=String(d.retryDelay||"").match(/^([\d.]+)s$/);if(m)seconds=Math.max(seconds,Number(m[1]));});
+ if(zero)return "Η Google αναφέρει μηδενικό διαθέσιμο όριο. Έλεγξε το έργο και το μοντέλο στο AI Studio. Η αναμονή μπορεί να μην αρκεί.";
+ const header=response.headers.get("Retry-After");
+ if(header){const n=Number(header);seconds=Math.max(seconds,Number.isFinite(n)?n:Math.max(0,(Date.parse(header)-Date.now())/1000)||0);}
+ let until=Date.now()+60000,label="Προτεινόμενη παύση, χωρίς εγγύηση επαναφοράς";
+ if(seconds>0){until=Date.now()+Math.ceil(seconds*1000)+1000;label="Χρόνος αναμονής της Google";}
+ if(/perday|per_day|per day|daily/i.test(JSON.stringify(data))){try{until=Math.max(until,midnight());label="Εκτιμώμενη ημερήσια επαναφορά";}catch(e){}}
+ blocks[$("model").value]={until,label};save("blocks",blocks);
+ return "Έφτασες σε όριο χρήσης. Το κείμενο διατηρήθηκε. Δες την αντίστροφη μέτρηση και δοκίμασε ξανά μετά την αναμονή.";
+}
+async function api(path,body){
+ if(typeof fetch!=="function"||typeof AbortController!=="function")throw Error("Χρειάζεται ενημέρωση του Android System WebView ή του Chrome.");
+ const own=new AbortController();controller=own;let timedOut=false;
+ const timer=setTimeout(()=>{timedOut=true;own.abort();},90000);
+ try{
+ const options={method:body?"POST":"GET",headers:{"x-goog-api-key":$("key").value.trim()},signal:own.signal,credentials:"omit",cache:"no-store",redirect:"error"};
+ if(body){options.headers["Content-Type"]="application/json";options.body=JSON.stringify(body);}
+ const response=await fetch("https://generativelanguage.googleapis.com/v1beta/"+path,options);
+ let data;try{data=await response.json();}catch(e){if(own.signal.aborted)throw e;throw Error("Δεν επιστράφηκε έγκυρη απάντηση από την Google.");}
+ if(!response.ok){
+ const raw=String((data.error||{}).message||"").split($("key").value.trim()).join("[κρυφό κλειδί]").slice(0,700);
+ if(response.status===429)throw Error(quota(data,response));
+ const hints={400:"Το αίτημα ή το κλειδί απορρίφθηκε.",401:"Το κλειδί δεν έγινε δεκτό.",403:"Δεν επιτρέπεται πρόσβαση με αυτό το κλειδί.",404:"Το μοντέλο δεν είναι διαθέσιμο για αυτό το αίτημα. Πάτησε Έλεγχος / μοντέλα."};
+ throw Error((hints[response.status]||"Σφάλμα υπηρεσίας")+" (HTTP "+response.status+")."+(raw?"\n"+raw:""));
+ }
+ return data;
+ }catch(e){
+ if(own.signal.aborted)throw Error(timedOut?"Πέρασαν 90 δευτερόλεπτα. Το κείμενο διατηρήθηκε.":"Η αναμονή σταμάτησε. Το αίτημα ίσως έχει ήδη μετρηθεί από την Google.");
+ if(e instanceof TypeError)throw Error("Δεν έγινε σύνδεση. Έλεγξε το διαδίκτυο και τους περιορισμούς του κλειδιού. Πιθανός αποκλεισμός αιτήματος δικτύου.");
+ throw e;
+ }finally{clearTimeout(timer);if(controller===own)controller=null;}
+}
+async function run(action){
+ if(busy)return;busy=true;tick();
+ try{await action();}catch(e){showStatus(e.message||"Παρουσιάστηκε σφάλμα.",true);reveal("status");}
+ finally{busy=false;tick();}
+}
+const tasks={
+ ask:"Απάντησε με σαφήνεια και πρακτικά βήματα.",
+ summary:"Συνόψισε σε κεντρικές ιδέες χωρίς επινοήσεις.",
+ explain:"Εξήγησε απλά με ορισμούς και ένα παράδειγμα.",
+ priorities:"Οργάνωσε σε αριθμημένη ιεραρχία προτεραιότητας και εξήγησε τη σειρά.",
+ story:"Ανάλυσε σε: 1 γεγονός, 2 συναίσθημα, 3 μήνυμα, 4 πιθανός στόχος, 5 πιθανό όφελος λογαριασμού, 6 πιθανό όφελος θεατή, 7 τι δεν γνωρίζουμε. Οι υποθέσεις για προθέσεις δεν είναι γεγονότα."
+};
+$("check").onclick=()=>run(async()=>{
+ setup();showStatus("Ελέγχω την πρόσβαση και φορτώνω διαθέσιμα μοντέλα…");reveal("status");
+ let models=[],page="";
+ do{const data=await api("models?pageSize=100"+(page?"&pageToken="+encodeURIComponent(page):""));models=models.concat(data.models||[]);page=data.nextPageToken||"";}while(page);
+ models=models.filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/^models\/gemini-/.test(m.name)&&!/image|audio|tts|robotics/i.test(m.name));
+ if(!models.length)throw Error("Δεν βρέθηκαν μοντέλα Gemini παραγωγής κειμένου για το κλειδί σου.");
+ const previous=$("model").value;$("model").textContent="";
+ models.forEach(m=>{const o=document.createElement("option");o.value=m.name.replace(/^models\//,"");o.textContent=o.value;$("model").appendChild(o);});
+ if(models.some(m=>m.name==="models/"+previous))$("model").value=previous;
+ persistKey();showStatus("Η πρόσβαση στη λίστα μοντέλων λειτουργεί. Επίλεξε μοντέλο και στείλε ερώτηση. Το δωρεάν υπόλοιπο ελέγχεται στο AI Studio.");
+});
+$("send").onclick=()=>run(async()=>{
+ setup();if(block())throw Error("Περίμενε να ολοκληρωθεί η αναμονή.");
+ const input=$("prompt").value.trim(),model=$("model").value;
+ if(!input)throw Error("Γράψε πρώτα την ερώτησή σου.");
+ if(input.length>30000)throw Error("Το όριο είναι 30.000 χαρακτήρες.");
+ clearTimeout(draftTimer);save("draft",input);persistKey();
+ showStatus("Η Google επεξεργάζεται την ερώτησή σου…");reveal("status");
+ const data=await api("models/"+encodeURIComponent(model)+":generateContent",{
+ systemInstruction:{parts:[{text:"Απάντα στα ελληνικά εκτός αν ζητηθεί άλλη γλώσσα. Ξεχώριζε γεγονότα από εκτιμήσεις. Δεν έχεις ζωντανή αναζήτηση ή δυνατότητα ανοίγματος URL. Μην ισχυρίζεσαι ότι έκανες έρευνα στον ιστό. Δήλωνε την αβεβαιότητα. "+tasks[$("mode").value]}]},
+ contents:[{role:"user",parts:[{text:input}]}],generationConfig:{maxOutputTokens:4096}
+ });
+ const c=(data.candidates||[])[0];
+ const result=c&&c.content?(c.content.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("\n").trim():"";
+ if(!result)throw Error("Δεν επιστράφηκε κείμενο. Αιτία: "+((data.promptFeedback||{}).blockReason||(c||{}).finishReason||"κενή απάντηση")+". Δοκίμασε διαφορετική διατύπωση.");
+ lastAnswer=result;$("answer").textContent=result;save("answer",result);
+ showStatus(c.finishReason==="MAX_TOKENS"?"Η απάντηση έφτασε το όριο μήκους και μπορεί να είναι κομμένη.":"Η απάντηση ολοκληρώθηκε.");
+ reveal("answerCard");
+});
+$("stop").onclick=()=>{if(controller)controller.abort();};
+$("key").oninput=()=>{$("free").checked=false;if($("remember").checked)persistKey();};
+$("remember").onchange=persistKey;$("model").onchange=tick;
+$("forget").onclick=()=>{$("key").value="";$("remember").checked=false;$("free").checked=false;remove("key");showStatus("Το κλειδί διαγράφηκε από την εφαρμογή.");};
+$("prompt").oninput=()=>{clearTimeout(draftTimer);draftTimer=setTimeout(()=>save("draft",$("prompt").value),400);};
+$("file").onchange=()=>{
+ const file=$("file").files[0];$("file").value="";if(!file)return;
+ if(!/\.txt$/i.test(file.name)||file.size>120000){showStatus("Επίλεξε TXT έως 120 KB.",true);reveal("status");return;}
+ const reader=new FileReader();reader.onload=()=>{if(busy){showStatus("Το αρχείο δεν εισήχθη ενώ εκτελείται αίτημα. Επίλεξέ το ξανά μετά την ολοκλήρωση.",true);return;}const text=String(reader.result||"");if(text.length>30000){showStatus("Το κείμενο ξεπερνά τους 30.000 χαρακτήρες.",true);return;}clearTimeout(draftTimer);$("prompt").value=text;save("draft",text);showStatus("Το κείμενο φορτώθηκε τοπικά. Πάτησε Αποστολή.");};
+ reader.onerror=()=>showStatus("Το αρχείο δεν διαβάστηκε.",true);reader.readAsText(file,"UTF-8");
+};
+$("export").onclick=()=>{
+ if(!lastAnswer){showStatus("Δεν υπάρχει ακόμη απάντηση.",true);reveal("status");return;}
+ if(window.AndroidExport){window.AndroidExport.saveText(lastAnswer);return;}
+ const url=URL.createObjectURL(new Blob(["\ufeff"+lastAnswer],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download="Kostas-AI-answer.txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+};
+$("clear").onclick=()=>{if(!confirm("Να διαγραφούν το πρόχειρο και η απάντηση;"))return;clearTimeout(draftTimer);$("prompt").value="";lastAnswer="";$("answer").textContent="Η απάντηση θα εμφανιστεί εδώ.";remove("draft");remove("answer");showStatus("Τα κείμενα καθαρίστηκαν.");};
+const key=read("key","");$("key").value=typeof key==="string"?key:"";$("remember").checked=!!$("key").value;
+const draft=read("draft","");$("prompt").value=typeof draft==="string"?draft.slice(0,30000):"";
+const answer=read("answer","");lastAnswer=typeof answer==="string"?answer:"";if(lastAnswer)$("answer").textContent=lastAnswer;
+const saved=read("blocks",{});blocks=saved&&typeof saved==="object"&&!Array.isArray(saved)?saved:{};
+window.addEventListener("error",()=>{showStatus("Η εφαρμογή συνάντησε τεχνικό σφάλμα. Κλείσε και άνοιξέ την ξανά. Αν συνεχίζεται, ενημέρωσε το Android System WebView.",true);});
+tick();setInterval(tick,1000);
+})();
+</script></body></html>

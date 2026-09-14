@@ -1,0 +1,46 @@
+name: Build Kostas AI Free APK
+on:
+  push:
+    paths:
+      - "kostas-ai-free-android/**"
+      - ".github/workflows/build-kostas-free-apk.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kostas-ai-free-android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify application behavior
+        run: |
+          npm install --no-save playwright@1.51.1
+          npx playwright install --with-deps chromium
+          node verify.cjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build installable signed APK
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Verify APK signature and package
+        run: |
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          "$BUILD_TOOLS/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          "$BUILD_TOOLS/aapt" dump badging app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk Kostas-AI-Free-2.0.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kostas-AI-Free-2.0-APK
+          path: kostas-ai-free-android/Kostas-AI-Free-2.0.apk
+          if-no-files-found: error
+          retention-days: 30

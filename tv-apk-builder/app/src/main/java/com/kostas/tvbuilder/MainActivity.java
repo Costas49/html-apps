@@ -3,6 +3,7 @@ package com.kostas.tvbuilder;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -50,6 +51,39 @@ public class MainActivity extends Activity {
 
         webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
         webView.requestFocus();
+    }
+
+    private void sendDpadToJavascript(String action) {
+        if (webView == null) return;
+        final String js = "window.dispatchEvent(new CustomEvent('android-dpad',{detail:'" + action + "'}));";
+        webView.evaluateJavascript(js, null);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (event.getKeyCode()) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    sendDpadToJavascript("left");
+                    break;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    sendDpadToJavascript("right");
+                    break;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    sendDpadToJavascript("up");
+                    break;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    sendDpadToJavascript("down");
+                    break;
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    sendDpadToJavascript("ok");
+                    break;
+                default:
+                    break;
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override

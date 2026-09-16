@@ -58,6 +58,8 @@ jobs:
           assets.mkdir(parents=True,exist_ok=True)
           values.mkdir(parents=True,exist_ok=True)
           shutil.copy2(folder/'index.html', assets/'index.html')
+          patch=folder/'patch-v21.js'
+          if patch.exists(): shutil.copy2(patch, assets/'patch.js')
           (values/'strings.xml').write_text('<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="app_name">'+escape(cfg['app_name'])+'</string></resources>\n',encoding='utf-8')
           with open(Path(__import__('os').environ['GITHUB_ENV']),'a',encoding='utf-8') as f:
               f.write('APP_ID='+cfg['application_id']+'\n')

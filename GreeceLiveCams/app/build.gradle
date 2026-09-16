@@ -1,0 +1,22 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.costas.greecelivecams'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.costas.greecelivecams'
+        minSdk 23
+        targetSdk 29
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}

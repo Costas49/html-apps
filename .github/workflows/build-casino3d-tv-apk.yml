@@ -59,7 +59,7 @@ jobs:
           values.mkdir(parents=True,exist_ok=True)
           shutil.copy2(folder/'index.html', assets/'index.html')
           patches=[]
-          for name in ('patch-v21.js','patch-v22.js','patch-v23.js'):
+          for name in ('patch-v21.js','patch-v22.js','patch-v23.js','patch-v24.js'):
               p=folder/name
               if p.exists(): patches.append(p.read_text(encoding='utf-8'))
           if patches:

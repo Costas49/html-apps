@@ -1,0 +1,86 @@
+name: Build Kostas Pac-Man TV APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tv-apps/pacman/**'
+      - 'tv-apk-builder/**'
+      - '.github/workflows/build-pacman-tv-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Keep the same debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: kostas-tv-debug-keystore-v1
+
+      - name: Prepare Pac-Man app
+        run: |
+          python3 - <<'PY'
+          import json, shutil
+          from pathlib import Path
+          from xml.sax.saxutils import escape
+          root = Path.cwd()
+          folder = root / 'tv-apps/pacman'
+          cfg = json.loads((folder / 'app.json').read_text(encoding='utf-8'))
+          builder = root / 'tv-apk-builder'
+          assets = builder / 'app/src/main/assets'
+          values = builder / 'app/src/main/res/values'
+          assets.mkdir(parents=True, exist_ok=True)
+          values.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(folder / 'index.html', assets / 'index.html')
+          (values / 'strings.xml').write_text('<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="app_name">' + escape(cfg['app_name']) + '</string></resources>\n', encoding='utf-8')
+          with open(Path.cwd() / '.pacman_env', 'w', encoding='utf-8') as f:
+              f.write('APP_ID=' + cfg['application_id'] + '\n')
+              f.write('VERSION_CODE=' + str(cfg.get('version_code', 1)) + '\n')
+              f.write('VERSION_NAME=' + str(cfg.get('version_name', '1.0')) + '\n')
+              f.write('APK_NAME=' + str(cfg.get('apk_name', 'Kostas-PacMan-TV')) + '\n')
+          PY
+          cat .pacman_env >> "$GITHUB_ENV"
+
+      - name: Build installable APK
+        working-directory: tv-apk-builder
+        run: gradle :app:assembleDebug -PAPP_ID="$APP_ID" -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME" --stacktrace
+
+      - name: Verify and rename APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk
+          cp tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk "tv-apk-builder/app/build/outputs/apk/debug/${APK_NAME}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kostas-PacMan-TV-APK
+          path: tv-apk-builder/app/build/outputs/apk/debug/Kostas-PacMan-TV.apk
+          if-no-files-found: error

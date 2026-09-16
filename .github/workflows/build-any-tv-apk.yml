@@ -1,0 +1,113 @@
+name: Build Any Android TV APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_folder:
+        description: 'Φάκελος εφαρμογής, π.χ. tv-apps/tavli'
+        required: true
+        default: 'tv-apps/_template'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Keep the same debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: kostas-tv-debug-keystore-v1
+
+      - name: Prepare selected TV app
+        env:
+          APP_FOLDER: ${{ inputs.app_folder }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, shutil
+          from pathlib import Path
+          from xml.sax.saxutils import escape
+
+          root = Path.cwd().resolve()
+          folder = (root / os.environ['APP_FOLDER']).resolve()
+          if folder != root and root not in folder.parents:
+              raise SystemExit('Μη έγκυρος φάκελος εφαρμογής')
+
+          cfg_path = folder / 'app.json'
+          html_path = folder / 'index.html'
+          if not cfg_path.exists() or not html_path.exists():
+              raise SystemExit('Χρειάζονται app.json και index.html στον φάκελο εφαρμογής')
+
+          cfg = json.loads(cfg_path.read_text(encoding='utf-8'))
+          app_name = str(cfg['app_name']).strip()
+          app_id = str(cfg['application_id']).strip()
+          version_code = int(cfg.get('version_code', 1))
+          version_name = str(cfg.get('version_name', '1.0')).strip()
+          apk_name = re.sub(r'[^A-Za-z0-9._-]+', '-', str(cfg.get('apk_name', app_name))).strip('-') or 'Kostas-TV-App'
+
+          if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+', app_id):
+              raise SystemExit('Μη έγκυρο application_id')
+          if version_code < 1:
+              raise SystemExit('Το version_code πρέπει να είναι τουλάχιστον 1')
+
+          builder = root / 'tv-apk-builder'
+          assets = builder / 'app/src/main/assets'
+          values = builder / 'app/src/main/res/values'
+          assets.mkdir(parents=True, exist_ok=True)
+          values.mkdir(parents=True, exist_ok=True)
+          shutil.copy2(html_path, assets / 'index.html')
+          (values / 'strings.xml').write_text(
+              '<?xml version="1.0" encoding="utf-8"?>\n<resources><string name="app_name">' + escape(app_name) + '</string></resources>\n',
+              encoding='utf-8'
+          )
+
+          env_file = Path(os.environ['GITHUB_ENV'])
+          with env_file.open('a', encoding='utf-8') as f:
+              f.write(f'APP_ID={app_id}\n')
+              f.write(f'VERSION_CODE={version_code}\n')
+              f.write(f'VERSION_NAME={version_name}\n')
+              f.write(f'APK_NAME={apk_name}\n')
+          print(f'Building {app_name} / {app_id} / {version_name}')
+          PY
+
+      - name: Build installable APK
+        working-directory: tv-apk-builder
+        run: gradle :app:assembleDebug -PAPP_ID="$APP_ID" -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME" --stacktrace
+
+      - name: Verify and rename APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk
+          cp tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk "tv-apk-builder/app/build/outputs/apk/debug/${APK_NAME}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}-APK
+          path: tv-apk-builder/app/build/outputs/apk/debug/${{ env.APK_NAME }}.apk
+          if-no-files-found: error

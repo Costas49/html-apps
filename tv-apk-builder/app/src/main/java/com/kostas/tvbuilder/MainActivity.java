@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
                     "(function(){var s=document.createElement('script');s.src='https://appassets.androidplatform.net/assets/patch.js';s.async=false;s.onerror=function(){};document.body.appendChild(s);})();",
                     null
                 );
+                view.requestFocus();
             }
         });
 
@@ -53,35 +54,42 @@ public class MainActivity extends Activity {
         webView.requestFocus();
     }
 
-    private void sendDpadToJavascript(String action) {
+    private void sendTvAction(String action) {
         if (webView == null) return;
-        final String js = "window.dispatchEvent(new CustomEvent('android-dpad',{detail:'" + action + "'}));";
+        final String js = "window.dispatchEvent(new CustomEvent('android-dpad-v23',{detail:'" + action + "'}));";
         webView.evaluateJavascript(js, null);
+    }
+
+    private String actionForKey(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                return "left";
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                return "right";
+            case KeyEvent.KEYCODE_DPAD_UP:
+                return "up";
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                return "down";
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+            case KeyEvent.KEYCODE_BUTTON_A:
+                return "ok";
+            default:
+                return null;
+        }
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            switch (event.getKeyCode()) {
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    sendDpadToJavascript("left");
-                    break;
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    sendDpadToJavascript("right");
-                    break;
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    sendDpadToJavascript("up");
-                    break;
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    sendDpadToJavascript("down");
-                    break;
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-                    sendDpadToJavascript("ok");
-                    break;
-                default:
-                    break;
+        String action = actionForKey(event.getKeyCode());
+        if (action != null) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                sendTvAction(action);
             }
+            // Consume both DOWN and UP so the WebView cannot process the same
+            // remote press a second time with a different focus/navigation path.
+            return true;
         }
         return super.dispatchKeyEvent(event);
     }

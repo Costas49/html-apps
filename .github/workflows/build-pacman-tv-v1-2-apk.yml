@@ -1,0 +1,70 @@
+name: Build Kostas Pac-Man TV v1.2 APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tv-apps/pacman/**'
+      - '.github/workflows/build-pacman-tv-v1-2-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Keep the same debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: kostas-tv-debug-keystore-v1
+
+      - name: Prepare Pac-Man v1.2
+        run: |
+          cp tv-apps/pacman/index.html tv-apk-builder/app/src/main/assets/index.html
+          sed -i 's/const GHOST_MOVE_EVERY=2;/const GHOST_MOVE_EVERY=4;/' tv-apk-builder/app/src/main/assets/index.html
+          cat > tv-apk-builder/app/src/main/res/values/strings.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources><string name="app_name">Kostas Pac-Man TV</string></resources>
+          EOF
+
+      - name: Build installable APK
+        working-directory: tv-apk-builder
+        run: gradle :app:assembleDebug -PAPP_ID="com.kostas.pacmantv" -PVERSION_CODE="3" -PVERSION_NAME="1.2" --stacktrace
+
+      - name: Verify and rename APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk
+          cp tv-apk-builder/app/build/outputs/apk/debug/app-debug.apk tv-apk-builder/app/build/outputs/apk/debug/Kostas-PacMan-TV-v1.2.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kostas-PacMan-TV-v1.2-APK
+          path: tv-apk-builder/app/build/outputs/apk/debug/Kostas-PacMan-TV-v1.2.apk
+          if-no-files-found: error

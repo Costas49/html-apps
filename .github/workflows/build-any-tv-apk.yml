@@ -7,6 +7,11 @@ on:
         description: 'Φάκελος εφαρμογής, π.χ. tv-apps/tavli'
         required: true
         default: 'tv-apps/_template'
+  push:
+    paths:
+      - 'tv-apk-builder/**'
+      - 'tv-apps/_template/**'
+      - '.github/workflows/build-any-tv-apk.yml'
 
 permissions:
   contents: read
@@ -46,7 +51,7 @@ jobs:
 
       - name: Prepare selected TV app
         env:
-          APP_FOLDER: ${{ inputs.app_folder }}
+          APP_FOLDER: ${{ inputs.app_folder || 'tv-apps/_template' }}
         run: |
           python3 - <<'PY'
           import json, os, re, shutil

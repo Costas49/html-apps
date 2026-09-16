@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+}
+
+def appIdProp = project.findProperty('APP_ID') ?: 'com.kostas.tvapp'
+def appNameProp = project.findProperty('APP_NAME') ?: 'Kostas TV App'
+def versionCodeProp = (project.findProperty('VERSION_CODE') ?: '1').toInteger()
+def versionNameProp = project.findProperty('VERSION_NAME') ?: '1.0'
+
+android {
+    namespace 'com.kostas.tvbuilder'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId appIdProp
+        minSdk 23
+        targetSdk 34
+        versionCode versionCodeProp
+        versionName versionNameProp
+        manifestPlaceholders = [appName: appNameProp]
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

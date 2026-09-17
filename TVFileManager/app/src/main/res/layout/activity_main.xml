@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TV File Manager"
+        android:textColor="@color/text_primary"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/pathText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="middle"
+        android:maxLines="1"
+        android:text="Επίλεξε χώρο αποθήκευσης"
+        android:textColor="@color/text_secondary"
+        android:textSize="16sp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:fillViewport="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/btnStorage" style="@style/TVButton" android:text="Αποθήκευση" />
+            <Button android:id="@+id/btnUp" style="@style/TVButton" android:text="Πάνω" />
+            <Button android:id="@+id/btnNewFolder" style="@style/TVButton" android:text="Νέος φάκελος" />
+            <Button android:id="@+id/btnCopy" style="@style/TVButton" android:text="Αντιγραφή" />
+            <Button android:id="@+id/btnMove" style="@style/TVButton" android:text="Μετακίνηση" />
+            <Button android:id="@+id/btnPaste" style="@style/TVButton" android:text="Επικόλληση" />
+            <Button android:id="@+id/btnRename" style="@style/TVButton" android:text="Μετονομασία" />
+            <Button android:id="@+id/btnDelete" style="@style/TVButton" android:text="Διαγραφή" />
+            <Button android:id="@+id/btnSearch" style="@style/TVButton" android:text="Αναζήτηση" />
+            <Button android:id="@+id/btnSort" style="@style/TVButton" android:text="Ταξινόμηση" />
+            <Button android:id="@+id/btnInfo" style="@style/TVButton" android:text="Πληροφορίες" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Χρησιμοποίησε τα βελάκια και OK του τηλεχειριστηρίου."
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp" />
+
+    <GridView
+        android:id="@+id/fileGrid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="12dp"
+        android:clipToPadding="false"
+        android:columnWidth="230dp"
+        android:gravity="center"
+        android:horizontalSpacing="12dp"
+        android:listSelector="@android:color/transparent"
+        android:numColumns="auto_fit"
+        android:paddingBottom="18dp"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="12dp" />
+
+</LinearLayout>

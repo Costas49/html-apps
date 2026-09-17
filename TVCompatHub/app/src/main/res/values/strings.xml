@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TV Compatibility Hub</string>
+    <string name="mouse_service_desc">Εικονικό ποντίκι TV: τα βελάκια μετακινούν τον δείκτη και το OK κάνει πάτημα.</string>
+</resources>

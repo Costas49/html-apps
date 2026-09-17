@@ -1,0 +1,64 @@
+name: Build NEXUS MIND Android 10 APK
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'nexus-mind-android/**'
+      - '.github/workflows/nexus-mind-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct NEXUS MIND source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nexus-src
+          cat nexus-mind-android/source.part*.b64 > /tmp/nexus-source.b64
+          base64 -d /tmp/nexus-source.b64 > /tmp/nexus-source.zip
+          unzip -q /tmp/nexus-source.zip -d /tmp/nexus-src
+          base64 -d nexus-mind-android/icon.b64 > /tmp/nexus-src/nexus-mind-android/app/src/main/res/drawable/ic_launcher.png
+          sed -i 's#android:icon="@drawable/ic_nexus"#android:icon="@drawable/ic_launcher"#' /tmp/nexus-src/nexus-mind-android/app/src/main/AndroidManifest.xml
+
+      - name: Install official Android SDK components
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build, align, release-sign and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nexus-src/nexus-mind-android
+          bash build_apk.sh
+          test -s dist/NEXUS_MIND_Android10_v1.0.apk
+          cat dist/signature-verification.txt
+          cat dist/SHA256.txt
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEXUS-MIND-v1-Android10-SIGNED
+          path: |
+            /tmp/nexus-src/nexus-mind-android/dist/NEXUS_MIND_Android10_v1.0.apk
+            /tmp/nexus-src/nexus-mind-android/dist/signature-verification.txt
+            /tmp/nexus-src/nexus-mind-android/dist/SHA256.txt
+            /tmp/nexus-src/nexus-mind-android/dist/SECURITY.txt
+          if-no-files-found: error
+          retention-days: 30

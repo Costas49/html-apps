@@ -29,6 +29,8 @@ jobs:
           unzip -q /tmp/nexus-source.zip -d /tmp/nexus-src
           base64 -d nexus-mind-android/icon.b64 > /tmp/nexus-src/nexus-mind-android/app/src/main/res/drawable/ic_launcher.png
           sed -i 's#android:icon="@drawable/ic_nexus"#android:icon="@drawable/ic_launcher"#' /tmp/nexus-src/nexus-mind-android/app/src/main/AndroidManifest.xml
+          sed -i 's/35.0.0/34.0.0/g; s/android-35/android-34/g' /tmp/nexus-src/nexus-mind-android/build_apk.sh
+          sed -i 's/targetSdkVersion="35"/targetSdkVersion="34"/' /tmp/nexus-src/nexus-mind-android/app/src/main/AndroidManifest.xml
 
       - name: Install official Android SDK components
         shell: bash
@@ -39,7 +41,7 @@ jobs:
             SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           fi
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Build, align, release-sign and verify
         shell: bash

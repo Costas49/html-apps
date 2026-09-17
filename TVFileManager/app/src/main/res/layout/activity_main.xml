@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <Button android:id="@+id/btnStorage" style="@style/TVButton" android:text="Αποθήκευση" />
+            <Button android:id="@+id/btnStorage" style="@style/TVButton" android:text="Χώρος / USB" />
             <Button android:id="@+id/btnUp" style="@style/TVButton" android:text="Πάνω" />
             <Button android:id="@+id/btnNewFolder" style="@style/TVButton" android:text="Νέος φάκελος" />
             <Button android:id="@+id/btnCopy" style="@style/TVButton" android:text="Αντιγραφή" />

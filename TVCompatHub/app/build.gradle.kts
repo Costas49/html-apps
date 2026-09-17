@@ -21,5 +21,5 @@ android {
 }
 
 dependencies {
-    // Framework APIs only: lightweight for Android TV boxes.
+    implementation("androidx.core:core:1.17.0")
 }

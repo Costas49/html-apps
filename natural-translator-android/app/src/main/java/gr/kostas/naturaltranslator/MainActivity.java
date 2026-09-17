@@ -39,18 +39,24 @@ public class MainActivity extends Activity {
     private static final int TEXT = Color.rgb(245, 247, 250);
     private static final int MUTED = Color.rgb(172, 182, 196);
     private static final int ACCENT = Color.rgb(119, 181, 255);
+    private static final int GOLD = Color.rgb(238, 193, 93);
     private static final int OK = Color.rgb(116, 220, 171);
     private static final int ERROR = Color.rgb(255, 140, 140);
 
     private Spinner fromSpinner;
     private Spinner toSpinner;
+    private Spinner tutorLangSpinner;
     private EditText input;
+    private EditText tutorInput;
     private TextView output;
     private TextView status;
+    private TextView tutorOutput;
+    private TextView tutorStatus;
     private Button translateButton;
     private Button speakButton;
     private Button copyButton;
     private Button shareButton;
+    private final List<Button> tutorButtons = new ArrayList<>();
 
     private Translator translator;
     private TextToSpeech tts;
@@ -109,7 +115,7 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(18), dp(18), dp(32));
+        root.setPadding(dp(18), dp(18), dp(18), dp(36));
         scroll.addView(root, new ScrollView.LayoutParams(
             ScrollView.LayoutParams.MATCH_PARENT,
             ScrollView.LayoutParams.WRAP_CONTENT
@@ -118,7 +124,7 @@ public class MainActivity extends Activity {
         TextView title = text("Natural Translator AI", 27, TEXT, true);
         root.addView(title);
 
-        TextView subtitle = text("Νευρωνική μετάφραση στη συσκευή • χωρίς API key ή συνδρομή", 15, MUTED, false);
+        TextView subtitle = text("Νευρωνική μετάφραση + 🎓 Πρύτανης Ξένων Γλωσσών", 15, MUTED, false);
         LinearLayout.LayoutParams subtitleLp = matchWrap();
         subtitleLp.setMargins(0, dp(5), 0, dp(18));
         root.addView(subtitle, subtitleLp);
@@ -136,27 +142,7 @@ public class MainActivity extends Activity {
         toSpinner = spinner();
         root.addView(toSpinner, matchHeight(dp(52)));
 
-        ArrayList<String> names = new ArrayList<>();
-        for (Lang l : languages) names.add(l.name);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, names) {
-            @Override
-            public View getView(int position, View convertView, android.view.ViewGroup parent) {
-                TextView v = (TextView) super.getView(position, convertView, parent);
-                v.setTextColor(TEXT);
-                v.setTextSize(16);
-                v.setPadding(dp(12), 0, dp(12), 0);
-                return v;
-            }
-            @Override
-            public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
-                TextView v = (TextView) super.getDropDownView(position, convertView, parent);
-                v.setTextColor(Color.BLACK);
-                v.setTextSize(16);
-                v.setPadding(dp(16), dp(12), dp(16), dp(12));
-                return v;
-            }
-        };
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> adapter = languageAdapter();
         fromSpinner.setAdapter(adapter);
         toSpinner.setAdapter(adapter);
         fromSpinner.setSelection(0);
@@ -180,17 +166,7 @@ public class MainActivity extends Activity {
         ilp.setMargins(0, dp(18), 0, 0);
         root.addView(inputLabel, ilp);
 
-        input = new EditText(this);
-        input.setTextColor(TEXT);
-        input.setHintTextColor(Color.rgb(115, 126, 143));
-        input.setHint("Γράψε ή επικόλλησε το κείμενο που θέλεις να μεταφράσεις…");
-        input.setTextSize(17);
-        input.setGravity(Gravity.TOP | Gravity.START);
-        input.setMinLines(5);
-        input.setMaxLines(12);
-        input.setPadding(dp(14), dp(13), dp(14), dp(13));
-        input.setBackground(panelDrawable(PANEL));
-        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input = editBox("Γράψε ή επικόλλησε το κείμενο που θέλεις να μεταφράσεις…", 5);
         LinearLayout.LayoutParams inputLp = matchWrap();
         inputLp.setMargins(0, dp(7), 0, dp(12));
         root.addView(input, inputLp);
@@ -231,12 +207,17 @@ public class MainActivity extends Activity {
         clearLp.setMargins(0, dp(10), 0, 0);
         root.addView(clear, clearLp);
 
+        buildTutorUi(root, adapter);
+
         TextView privacy = text(
-            "Με τεχνολογία Google ML Kit. Η μετάφραση εκτελείται στη συσκευή μετά τη λήψη του γλωσσικού μοντέλου. Για πολύ απαιτητικά λογοτεχνικά ή εξειδικευμένα κείμενα, ένα online LLM μπορεί να δώσει ακόμη πιο φυσική απόδοση.",
+            "Η βασική μετάφραση γίνεται με Google ML Kit στη συσκευή μετά τη λήψη του μοντέλου. " +
+            "Η «Ελληνική μεταγραφή», το «Συντακτικό» και οι «Συμβουλές» λειτουργούν τοπικά. " +
+            "Μόνο όταν πατάς «Γραμματική» στέλνεται το συγκεκριμένο κείμενο στην online υπηρεσία LanguageTool για έλεγχο. " +
+            "Η λειτουργία «Έννοια» χρησιμοποιεί online λεξικό για αγγλικές λέξεις και έχει τοπικό fallback μετάφρασης.",
             12, MUTED, false
         );
         LinearLayout.LayoutParams privacyLp = matchWrap();
-        privacyLp.setMargins(0, dp(18), 0, 0);
+        privacyLp.setMargins(0, dp(20), 0, 0);
         root.addView(privacy, privacyLp);
 
         translateButton.setOnClickListener(v -> translate());
@@ -246,11 +227,204 @@ public class MainActivity extends Activity {
         clear.setOnClickListener(v -> {
             input.setText("");
             output.setText("—");
+            output.setTag(null);
             setStatus("Έτοιμος.", false);
             input.requestFocus();
         });
 
         setContentView(scroll);
+    }
+
+    private void buildTutorUi(LinearLayout root, ArrayAdapter<String> adapter) {
+        TextView divider = text("🎓  ΠΡΥΤΑΝΗΣ ΞΕΝΩΝ ΓΛΩΣΣΩΝ", 20, GOLD, true);
+        LinearLayout.LayoutParams dividerLp = matchWrap();
+        dividerLp.setMargins(0, dp(30), 0, dp(6));
+        root.addView(divider, dividerLp);
+
+        TextView intro = text(
+            "Βοηθός γλώσσας για έννοιες, γραμματική, συντακτικό, προφορά/μεταγραφή και πρακτικές συμβουλές — χωρίς API key.",
+            14, MUTED, false
+        );
+        LinearLayout.LayoutParams introLp = matchWrap();
+        introLp.setMargins(0, 0, 0, dp(14));
+        root.addView(intro, introLp);
+
+        root.addView(label("Γλώσσα του κειμένου που θα αναλυθεί"));
+        tutorLangSpinner = spinner();
+        tutorLangSpinner.setAdapter(adapter);
+        tutorLangSpinner.setSelection(1);
+        root.addView(tutorLangSpinner, matchHeight(dp(52)));
+
+        tutorInput = editBox("Γράψε λέξη ή πρόταση. Παράδειγμα: love / I have been working here.", 4);
+        LinearLayout.LayoutParams ti = matchWrap();
+        ti.setMargins(0, dp(10), 0, dp(10));
+        root.addView(tutorInput, ti);
+
+        LinearLayout fillRow = new LinearLayout(this);
+        fillRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button useOriginal = button("← Από αρχικό", false);
+        Button useTranslation = button("← Από μετάφραση", false);
+        fillRow.addView(useOriginal, weightedButton());
+        LinearLayout.LayoutParams transLp = weightedButton();
+        transLp.setMargins(dp(8), 0, 0, 0);
+        fillRow.addView(useTranslation, transLp);
+        root.addView(fillRow, matchHeight(dp(46)));
+
+        useOriginal.setOnClickListener(v -> {
+            tutorInput.setText(input.getText().toString());
+            tutorLangSpinner.setSelection(fromSpinner.getSelectedItemPosition());
+            tutorInput.requestFocus();
+        });
+
+        useTranslation.setOnClickListener(v -> {
+            String value = output.getText().toString();
+            if (value.equals("—") || value.trim().isEmpty()) {
+                Toast.makeText(this, "Κάνε πρώτα μία μετάφραση.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            tutorInput.setText(value);
+            tutorLangSpinner.setSelection(toSpinner.getSelectedItemPosition());
+            tutorInput.requestFocus();
+        });
+
+        LinearLayout row1 = new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+        Button concept = tutorButton("💡 Έννοια");
+        Button grammar = tutorButton("✓ Γραμματική");
+        Button syntax = tutorButton("🧩 Συντακτικό");
+        row1.addView(concept, weightedButton());
+        LinearLayout.LayoutParams gLp = weightedButton();
+        gLp.setMargins(dp(6), 0, dp(6), 0);
+        row1.addView(grammar, gLp);
+        row1.addView(syntax, weightedButton());
+        LinearLayout.LayoutParams r1lp = matchHeight(dp(48));
+        r1lp.setMargins(0, dp(10), 0, 0);
+        root.addView(row1, r1lp);
+
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        Button transcription = tutorButton("🔤 Ελληνική μεταγραφή");
+        Button advice = tutorButton("🎯 Συμβουλές");
+        row2.addView(transcription, weightedButton());
+        LinearLayout.LayoutParams aLp = weightedButton();
+        aLp.setMargins(dp(6), 0, 0, 0);
+        row2.addView(advice, aLp);
+        LinearLayout.LayoutParams r2lp = matchHeight(dp(48));
+        r2lp.setMargins(0, dp(7), 0, dp(10));
+        root.addView(row2, r2lp);
+
+        tutorStatus = text("Πρύτανης έτοιμος.", 13, MUTED, false);
+        LinearLayout.LayoutParams ts = matchWrap();
+        ts.setMargins(0, 0, 0, dp(8));
+        root.addView(tutorStatus, ts);
+
+        tutorOutput = text(
+            "Παράδειγμα μεταγραφής: love → λοβ\n\nΔιάλεξε μία από τις λειτουργίες επάνω.",
+            16, TEXT, false
+        );
+        tutorOutput.setTextIsSelectable(true);
+        tutorOutput.setPadding(dp(14), dp(14), dp(14), dp(14));
+        tutorOutput.setMinHeight(dp(150));
+        tutorOutput.setBackground(panelDrawable(PANEL));
+        root.addView(tutorOutput, matchWrap());
+
+        LinearLayout tutorActionRow = new LinearLayout(this);
+        tutorActionRow.setOrientation(LinearLayout.HORIZONTAL);
+        Button copyTutor = button("📋 Αντιγραφή ανάλυσης", false);
+        Button shareTutor = button("↗ Κοινή χρήση", false);
+        tutorActionRow.addView(copyTutor, weightedButton());
+        LinearLayout.LayoutParams shareLp = weightedButton();
+        shareLp.setMargins(dp(8), 0, 0, 0);
+        tutorActionRow.addView(shareTutor, shareLp);
+        LinearLayout.LayoutParams tarLp = matchHeight(dp(46));
+        tarLp.setMargins(0, dp(8), 0, 0);
+        root.addView(tutorActionRow, tarLp);
+
+        concept.setOnClickListener(v -> {
+            String value = tutorText();
+            if (value == null) return;
+            setTutorBusy(true, "Αναλύω την έννοια…");
+            TutorEngine.explainConcept(this, value, tutorLanguage().code, tutorCallback());
+        });
+
+        grammar.setOnClickListener(v -> {
+            String value = tutorText();
+            if (value == null) return;
+            setTutorBusy(true, "Ελέγχω γραμματική, ορθογραφία και στίξη…");
+            TutorEngine.grammarCheck(this, value, tutorLanguage().code, tutorCallback());
+        });
+
+        syntax.setOnClickListener(v -> {
+            String value = tutorText();
+            if (value == null) return;
+            hideKeyboard();
+            tutorOutput.setText(TutorEngine.syntaxAnalysis(value, tutorLanguage().code));
+            setTutorStatus("Η συντακτική ανάλυση ολοκληρώθηκε.", false);
+        });
+
+        transcription.setOnClickListener(v -> {
+            String value = tutorText();
+            if (value == null) return;
+            hideKeyboard();
+            String result =
+                "🎓 ΕΛΛΗΝΙΚΗ ΜΕΤΑΓΡΑΦΗ\n" +
+                value + "\n↓\n" +
+                TutorEngine.greekTranscription(value, tutorLanguage().code) +
+                "\n\nΗ μεταγραφή είναι βοήθημα ανάγνωσης με ελληνικά γράμματα, όχι επίσημη φωνητική γραφή IPA.";
+            tutorOutput.setText(result);
+            setTutorStatus("Η μεταγραφή δημιουργήθηκε.", false);
+        });
+
+        advice.setOnClickListener(v -> {
+            String value = tutorText();
+            if (value == null) return;
+            hideKeyboard();
+            tutorOutput.setText(TutorEngine.studyAdvice(value, tutorLanguage().code));
+            setTutorStatus("Έτοιμη η συμβουλή μελέτης.", false);
+        });
+
+        copyTutor.setOnClickListener(v -> {
+            String value = tutorOutput.getText().toString().trim();
+            if (value.isEmpty()) return;
+            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(ClipData.newPlainText("Ανάλυση Πρύτανη", value));
+            Toast.makeText(this, "Αντιγράφηκε η ανάλυση.", Toast.LENGTH_SHORT).show();
+        });
+
+        shareTutor.setOnClickListener(v -> {
+            String value = tutorOutput.getText().toString().trim();
+            if (value.isEmpty()) return;
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType("text/plain");
+            send.putExtra(Intent.EXTRA_TEXT, value);
+            startActivity(Intent.createChooser(send, "Κοινή χρήση ανάλυσης"));
+        });
+    }
+
+    private ArrayAdapter<String> languageAdapter() {
+        ArrayList<String> names = new ArrayList<>();
+        for (Lang l : languages) names.add(l.name);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, names) {
+            @Override
+            public View getView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView v = (TextView) super.getView(position, convertView, parent);
+                v.setTextColor(TEXT);
+                v.setTextSize(16);
+                v.setPadding(dp(12), 0, dp(12), 0);
+                return v;
+            }
+
+            @Override
+            public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
+                TextView v = (TextView) super.getDropDownView(position, convertView, parent);
+                v.setTextColor(Color.BLACK);
+                v.setTextSize(16);
+                v.setPadding(dp(16), dp(12), dp(16), dp(12));
+                return v;
+            }
+        };
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return adapter;
     }
 
     private void translate() {
@@ -347,14 +521,57 @@ public class MainActivity extends Activity {
         tts.speak(value, TextToSpeech.QUEUE_FLUSH, null, "natural-translation");
     }
 
+    private String tutorText() {
+        String value = tutorInput.getText().toString().trim();
+        if (value.isEmpty()) {
+            setTutorStatus("Γράψε πρώτα λέξη ή πρόταση.", true);
+            tutorInput.requestFocus();
+            return null;
+        }
+        return value;
+    }
+
+    private Lang tutorLanguage() {
+        int pos = tutorLangSpinner.getSelectedItemPosition();
+        if (pos < 0 || pos >= languages.size()) pos = 1;
+        return languages.get(pos);
+    }
+
+    private TutorEngine.Callback tutorCallback() {
+        return new TutorEngine.Callback() {
+            @Override
+            public void onResult(String text) {
+                tutorOutput.setText(text);
+                setTutorBusy(false, "Η ανάλυση ολοκληρώθηκε.");
+            }
+
+            @Override
+            public void onError(String message) {
+                tutorOutput.setText("Δεν ολοκληρώθηκε η ανάλυση.\n\n" + message);
+                setTutorBusy(false, message);
+                tutorStatus.setTextColor(ERROR);
+            }
+        };
+    }
+
     private void setBusy(boolean busy) {
         translateButton.setEnabled(!busy);
         translateButton.setText(busy ? "Περίμενε…" : "Μετάφραση");
     }
 
+    private void setTutorBusy(boolean busy, String message) {
+        for (Button b : tutorButtons) b.setEnabled(!busy);
+        setTutorStatus(message, false);
+    }
+
     private void setStatus(String message, boolean error) {
         status.setText(message);
         status.setTextColor(error ? ERROR : (message.startsWith("Ολοκληρώθηκε") ? OK : MUTED));
+    }
+
+    private void setTutorStatus(String message, boolean error) {
+        tutorStatus.setText(message);
+        tutorStatus.setTextColor(error ? ERROR : (message.contains("ολοκληρώ") || message.contains("Έτοιμη") ? OK : MUTED));
     }
 
     private void hideKeyboard() {
@@ -380,6 +597,25 @@ public class MainActivity extends Activity {
         return t;
     }
 
+    private EditText editBox(String hint, int minLines) {
+        EditText e = new EditText(this);
+        e.setTextColor(TEXT);
+        e.setHintTextColor(Color.rgb(115, 126, 143));
+        e.setHint(hint);
+        e.setTextSize(17);
+        e.setGravity(Gravity.TOP | Gravity.START);
+        e.setMinLines(minLines);
+        e.setMaxLines(12);
+        e.setPadding(dp(14), dp(13), dp(14), dp(13));
+        e.setBackground(panelDrawable(PANEL));
+        e.setInputType(
+            android.text.InputType.TYPE_CLASS_TEXT |
+            android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+            android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        );
+        return e;
+    }
+
     private Spinner spinner() {
         Spinner s = new Spinner(this);
         s.setBackground(panelDrawable(PANEL_2));
@@ -395,6 +631,13 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setBackground(panelDrawable(primary ? ACCENT : PANEL_2));
         b.setPadding(dp(8), 0, dp(8), 0);
+        return b;
+    }
+
+    private Button tutorButton(String value) {
+        Button b = button(value, false);
+        b.setTextSize(12);
+        tutorButtons.add(b);
         return b;
     }
 
@@ -435,6 +678,7 @@ public class MainActivity extends Activity {
     private static class Lang {
         final String name;
         final String code;
+
         Lang(String name, String code) {
             this.name = name;
             this.code = code;

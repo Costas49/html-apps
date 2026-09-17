@@ -312,7 +312,7 @@ public final class BrowserActivity extends Activity {
 
     private void scrollPage(int direction) {
         int amount = Math.max(dp(220), (int) (webView.getHeight() * 0.72f));
-        webView.smoothScrollBy(0, direction * amount);
+        webView.scrollBy(0, direction * amount);
     }
 
     private void moveCursor(int dx, int dy) {

@@ -1,12 +1,16 @@
 package gr.costas.tvfilemanager
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.provider.DocumentsContract
+import android.os.Environment
+import android.provider.Settings
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
@@ -16,6 +20,8 @@ import android.widget.EditText
 import android.widget.GridView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.FileProvider
+import java.io.File
 import java.text.DateFormat
 import java.util.ArrayDeque
 import java.util.Date
@@ -24,31 +30,31 @@ import java.util.Locale
 class MainActivity : Activity() {
 
     companion object {
-        private const val REQ_OPEN_TREE = 7001
+        private const val REQ_STORAGE_PERMISSION = 7002
         private const val PREFS = "tv_file_manager"
-        private const val PREF_TREE_URI = "tree_uri"
+        private const val PREF_ROOT_PATH = "root_path"
     }
 
     private lateinit var fileGrid: GridView
     private lateinit var pathText: TextView
     private lateinit var statusText: TextView
     private lateinit var adapter: FileGridAdapter
+    private lateinit var repository: DirectFileRepository
 
-    private var repository: SafRepository? = null
-    private var currentDirectory: Uri? = null
-    private val navigationStack = ArrayDeque<Uri>()
-
+    private var currentDirectory: File? = null
+    private val navigationStack = ArrayDeque<File>()
     private var allEntries: List<FileEntry> = emptyList()
     private var selectedEntry: FileEntry? = null
     private var sortAscending = true
-
     private var clipboardUri: Uri? = null
     private var clipboardMove = false
+    private var awaitingStoragePermission = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        repository = DirectFileRepository(this)
         fileGrid = findViewById(R.id.fileGrid)
         pathText = findViewById(R.id.pathText)
         statusText = findViewById(R.id.statusText)
@@ -58,6 +64,14 @@ class MainActivity : Activity() {
         wireGrid()
         wireButtons()
         restoreStorage()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (awaitingStoragePermission && hasStorageAccess()) {
+            awaitingStoragePermission = false
+            showStorageRoots()
+        }
     }
 
     private fun wireGrid() {
@@ -86,9 +100,7 @@ class MainActivity : Activity() {
             if (event.action == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_MENU) {
                 showInfo()
                 true
-            } else {
-                false
-            }
+            } else false
         }
     }
 
@@ -107,82 +119,115 @@ class MainActivity : Activity() {
     }
 
     private fun chooseStorage() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-            addFlags(
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
-            )
+        if (!hasStorageAccess()) {
+            requestStorageAccess()
+            return
         }
-        try {
-            startActivityForResult(intent, REQ_OPEN_TREE)
-        } catch (_: ActivityNotFoundException) {
-            toast("Η συσκευή δεν διαθέτει συμβατό επιλογέα φακέλων.")
+        showStorageRoots()
+    }
+
+    private fun hasStorageAccess(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
         }
     }
 
-    @Deprecated("Deprecated in Android, retained for API 26+ compatibility without extra dependencies")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQ_OPEN_TREE || resultCode != RESULT_OK) return
-
-        val uri = data?.data ?: return
-        val flags = data.flags and (
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    private fun requestStorageAccess() {
+        awaitingStoragePermission = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val packageUri = Uri.parse("package:$packageName")
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, packageUri))
+            } catch (_: ActivityNotFoundException) {
+                try {
+                    startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                } catch (_: ActivityNotFoundException) {
+                    awaitingStoragePermission = false
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri))
+                    toast("Άνοιξε τα δικαιώματα της εφαρμογής και επίτρεψε πρόσβαση στα αρχεία.")
+                }
+            }
+        } else {
+            requestPermissions(
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                REQ_STORAGE_PERMISSION
             )
+        }
+    }
 
-        try {
-            contentResolver.takePersistableUriPermission(uri, flags)
-        } catch (_: SecurityException) {
-            // Some OEM providers grant access for the current session only.
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_STORAGE_PERMISSION) {
+            awaitingStoragePermission = false
+            if (hasStorageAccess()) showStorageRoots()
+            else toast("Χρειάζεται άδεια πρόσβασης στα αρχεία για να λειτουργήσει ο File Manager.")
+        }
+    }
+
+    private fun showStorageRoots() {
+        val roots = repository.availableRoots()
+        if (roots.isEmpty()) {
+            statusText.text = "Δεν βρέθηκε προσβάσιμος χώρος αποθήκευσης."
+            return
         }
 
-        getSharedPreferences(PREFS, MODE_PRIVATE)
-            .edit()
-            .putString(PREF_TREE_URI, uri.toString())
-            .apply()
+        if (roots.size == 1) {
+            attachStorage(roots.first())
+            return
+        }
 
-        attachStorage(uri)
+        val internalPath = try { Environment.getExternalStorageDirectory().canonicalPath } catch (_: Exception) { "" }
+        val labels = roots.map { root ->
+            val path = try { root.canonicalPath } catch (_: Exception) { root.absolutePath }
+            if (path == internalPath) "Εσωτερικός χώρος\n$path" else "USB / Εξωτερικός χώρος\n$path"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Επίλεξε χώρο αποθήκευσης")
+            .setItems(labels) { _, which -> attachStorage(roots[which]) }
+            .setNegativeButton("Άκυρο", null)
+            .show()
     }
 
     private fun restoreStorage() {
-        val saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_TREE_URI, null)
-        if (saved.isNullOrBlank()) {
+        if (!hasStorageAccess()) {
             adapter.submitList(emptyList())
-            statusText.text = "Πάτησε «Αποθήκευση» και επίλεξε εσωτερικό χώρο ή USB."
+            pathText.text = "Χρειάζεται πρόσβαση στα αρχεία"
+            statusText.text = "Πάτησε «Χώρος / USB» και ενεργοποίησε μία φορά τη «Διαχείριση όλων των αρχείων»."
             findViewById<Button>(R.id.btnStorage).requestFocus()
             return
         }
 
-        try {
-            attachStorage(Uri.parse(saved))
-        } catch (_: Exception) {
-            statusText.text = "Η προηγούμενη πρόσβαση έληξε. Επίλεξε ξανά χώρο αποθήκευσης."
-            findViewById<Button>(R.id.btnStorage).requestFocus()
+        val saved = getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_ROOT_PATH, null)
+        val savedRoot = saved?.let { File(it) }
+        if (savedRoot != null && savedRoot.exists() && savedRoot.isDirectory && savedRoot.canRead()) {
+            attachStorage(savedRoot)
+        } else {
+            showStorageRoots()
         }
     }
 
-    private fun attachStorage(treeUri: Uri) {
-        val repo = SafRepository(this, treeUri)
-        repository = repo
+    private fun attachStorage(root: File) {
         navigationStack.clear()
-        currentDirectory = repo.rootDocumentUri()
+        currentDirectory = root
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(PREF_ROOT_PATH, root.absolutePath).apply()
         loadDirectory(requestFocus = true)
     }
 
     private fun loadDirectory(requestFocus: Boolean = false) {
-        val repo = repository ?: return
-        val dir = currentDirectory ?: return
-
+        val dir = currentDirectory ?: return requireStorage()
         try {
-            allEntries = repo.listChildren(dir)
+            allEntries = repository.listChildren(Uri.fromFile(dir))
             val sorted = sortEntries(allEntries)
             adapter.submitList(sorted)
             selectedEntry = sorted.firstOrNull()
-
-            val dirName = repo.getEntry(dir)?.name ?: friendlyDocumentId(dir)
-            pathText.text = "Φάκελος: $dirName"
+            pathText.text = dir.absolutePath
             statusText.text = "${sorted.size} στοιχεία • OK για άνοιγμα • BACK για επιστροφή"
 
             if (requestFocus && sorted.isNotEmpty()) {
@@ -204,14 +249,22 @@ class MainActivity : Activity() {
 
     private fun openEntry(entry: FileEntry) {
         if (entry.isDirectory) {
+            val next = repository.fileFromUri(entry.uri)
             currentDirectory?.let { navigationStack.addLast(it) }
-            currentDirectory = entry.uri
+            currentDirectory = next
             loadDirectory(requestFocus = true)
             return
         }
 
+        val file = repository.fileFromUri(entry.uri)
+        val contentUri = try {
+            FileProvider.getUriForFile(this, "$packageName.files", file)
+        } catch (e: Exception) {
+            return toast("Δεν ήταν δυνατό το άνοιγμα: ${e.message ?: "σφάλμα πρόσβασης"}")
+        }
+
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(entry.uri, entry.mimeType.ifBlank { "*/*" })
+            setDataAndType(contentUri, entry.mimeType.ifBlank { "*/*" })
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
@@ -220,7 +273,7 @@ class MainActivity : Activity() {
         } catch (_: ActivityNotFoundException) {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(entry.uri, "*/*")
+                    setDataAndType(contentUri, "*/*")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 })
             } catch (_: ActivityNotFoundException) {
@@ -231,22 +284,24 @@ class MainActivity : Activity() {
 
     private fun navigateUp() {
         if (navigationStack.isEmpty()) {
-            toast("Βρίσκεσαι ήδη στον αρχικό φάκελο.")
+            toast("Βρίσκεσαι ήδη στον αρχικό χώρο.")
             return
         }
         currentDirectory = navigationStack.removeLast()
         loadDirectory(requestFocus = true)
     }
 
+    override fun onBackPressed() {
+        if (navigationStack.isNotEmpty()) navigateUp() else super.onBackPressed()
+    }
+
     private fun newFolder() {
-        val repo = repository ?: return requireStorage()
         val dir = currentDirectory ?: return requireStorage()
         showTextInput("Νέος φάκελος", "Όνομα φακέλου", "Νέος φάκελος") { rawName ->
             val name = sanitizeName(rawName)
             if (name.isBlank()) return@showTextInput toast("Δώσε έγκυρο όνομα.")
             runFileTask("Δημιουργία φακέλου") {
-                val created = repo.createFolder(dir, name)
-                if (created == null) error("Δεν ήταν δυνατή η δημιουργία φακέλου.")
+                if (repository.createFolder(Uri.fromFile(dir), name) == null) error("Δεν ήταν δυνατή η δημιουργία φακέλου.")
             }
         }
     }
@@ -263,17 +318,18 @@ class MainActivity : Activity() {
     }
 
     private fun pasteClipboard() {
-        val repo = repository ?: return requireStorage()
         val source = clipboardUri ?: return toast("Δεν υπάρχει κάτι για επικόλληση.")
         val destination = currentDirectory ?: return requireStorage()
+        val destinationUri = Uri.fromFile(destination)
 
-        if (repo.isDestinationInsideSource(source, destination)) {
+        if (repository.isDestinationInsideSource(source, destinationUri)) {
             return toast("Δεν μπορείς να αντιγράψεις φάκελο μέσα στον ίδιο ή σε υποφάκελό του.")
         }
 
         val moving = clipboardMove
         runFileTask(if (moving) "Μετακίνηση" else "Αντιγραφή") {
-            if (moving) repo.moveRecursive(source, destination) else repo.copyRecursive(source, destination)
+            if (moving) repository.moveRecursive(source, destinationUri)
+            else repository.copyRecursive(source, destinationUri)
             if (moving) {
                 clipboardUri = null
                 clipboardMove = false
@@ -282,36 +338,32 @@ class MainActivity : Activity() {
     }
 
     private fun renameSelected() {
-        val repo = repository ?: return requireStorage()
         val entry = selectedEntry ?: return toast("Επίλεξε πρώτα αρχείο ή φάκελο.")
         showTextInput("Μετονομασία", "Νέο όνομα", entry.name) { rawName ->
             val newName = sanitizeName(rawName)
             if (newName.isBlank()) return@showTextInput toast("Δώσε έγκυρο όνομα.")
             runFileTask("Μετονομασία") {
-                val renamed = repo.rename(entry.uri, newName)
-                if (renamed == null) error("Η μετονομασία δεν υποστηρίζεται από αυτόν τον χώρο αποθήκευσης.")
+                if (repository.rename(entry.uri, newName) == null) error("Η μετονομασία απέτυχε.")
             }
         }
     }
 
     private fun deleteSelected() {
-        val repo = repository ?: return requireStorage()
         val entry = selectedEntry ?: return toast("Επίλεξε πρώτα αρχείο ή φάκελο.")
-
         AlertDialog.Builder(this)
             .setTitle("Διαγραφή")
             .setMessage("Να διαγραφεί οριστικά το «${entry.name}»;")
             .setNegativeButton("Άκυρο", null)
             .setPositiveButton("Διαγραφή") { _, _ ->
                 runFileTask("Διαγραφή") {
-                    if (!repo.delete(entry.uri)) error("Η διαγραφή απέτυχε.")
+                    if (!repository.delete(entry.uri)) error("Η διαγραφή απέτυχε.")
                 }
             }
             .show()
     }
 
     private fun searchCurrentFolder() {
-        if (repository == null) return requireStorage()
+        if (currentDirectory == null) return requireStorage()
         showTextInput("Αναζήτηση", "Όνομα αρχείου ή φακέλου", "") { query ->
             val q = query.trim().lowercase(Locale.getDefault())
             val filtered = if (q.isBlank()) allEntries else allEntries.filter {
@@ -320,11 +372,7 @@ class MainActivity : Activity() {
             val sorted = sortEntries(filtered)
             adapter.submitList(sorted)
             selectedEntry = sorted.firstOrNull()
-            statusText.text = if (q.isBlank()) {
-                "${sorted.size} στοιχεία"
-            } else {
-                "${sorted.size} αποτελέσματα για «$query»"
-            }
+            statusText.text = if (q.isBlank()) "${sorted.size} στοιχεία" else "${sorted.size} αποτελέσματα για «$query»"
             if (sorted.isNotEmpty()) {
                 fileGrid.post {
                     fileGrid.setSelection(0)
@@ -345,17 +393,14 @@ class MainActivity : Activity() {
 
     private fun showInfo() {
         val entry = selectedEntry ?: return toast("Επίλεξε πρώτα αρχείο ή φάκελο.")
-        val modified = if (entry.lastModified > 0) {
-            DateFormat.getDateTimeInstance().format(Date(entry.lastModified))
-        } else {
-            "Άγνωστο"
-        }
+        val modified = if (entry.lastModified > 0) DateFormat.getDateTimeInstance().format(Date(entry.lastModified)) else "Άγνωστο"
+        val file = repository.fileFromUri(entry.uri)
         val body = buildString {
             appendLine("Όνομα: ${entry.name}")
             appendLine("Τύπος: ${if (entry.isDirectory) "Φάκελος" else entry.mimeType}")
             appendLine("Μέγεθος: ${if (entry.isDirectory) "—" else humanSize(entry.size)}")
             appendLine("Τροποποίηση: $modified")
-            append("URI: ${entry.uri}")
+            append("Διαδρομή: ${file.absolutePath}")
         }
         AlertDialog.Builder(this)
             .setTitle("Πληροφορίες")
@@ -366,62 +411,41 @@ class MainActivity : Activity() {
 
     private fun showTextInput(title: String, hint: String, initial: String, onOk: (String) -> Unit) {
         val input = EditText(this).apply {
-            setText(initial)
-            setSelection(text.length)
-            this.hint = hint
             inputType = InputType.TYPE_CLASS_TEXT
-            setSingleLine(true)
+            setHint(hint)
+            setText(initial)
+            selectAll()
         }
-        val dialog = AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(title)
             .setView(input)
             .setNegativeButton("Άκυρο", null)
-            .setPositiveButton("OK") { _, _ -> onOk(input.text.toString()) }
-            .create()
-        dialog.setOnShowListener { input.requestFocus() }
-        dialog.show()
+            .setPositiveButton("OK") { _, _ -> onOk(input.text?.toString().orEmpty()) }
+            .show()
     }
 
-    private fun runFileTask(label: String, task: () -> Unit) {
+    private fun runFileTask(label: String, action: () -> Unit) {
         statusText.text = "$label…"
-        setControlsEnabled(false)
-
         Thread {
-            val result = runCatching { task() }
-            runOnUiThread {
-                setControlsEnabled(true)
-                result.onSuccess {
-                    toast("$label ολοκληρώθηκε.")
+            try {
+                action()
+                runOnUiThread {
+                    statusText.text = "$label ολοκληρώθηκε."
                     loadDirectory(requestFocus = true)
-                }.onFailure {
-                    statusText.text = "$label απέτυχε: ${it.message ?: "άγνωστο σφάλμα"}"
-                    toast("${it.message ?: "$label απέτυχε."}")
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    statusText.text = "$label απέτυχε: ${e.message ?: "άγνωστο σφάλμα"}"
                 }
             }
         }.start()
     }
 
-    private fun setControlsEnabled(enabled: Boolean) {
-        val ids = intArrayOf(
-            R.id.btnStorage, R.id.btnUp, R.id.btnNewFolder, R.id.btnCopy,
-            R.id.btnMove, R.id.btnPaste, R.id.btnRename, R.id.btnDelete,
-            R.id.btnSearch, R.id.btnSort, R.id.btnInfo
-        )
-        ids.forEach { findViewById<View>(it).isEnabled = enabled }
-        fileGrid.isEnabled = enabled
-    }
+    private fun sanitizeName(value: String): String = value.trim().replace('/', '_').replace('\\', '_')
 
     private fun requireStorage() {
-        toast("Πάτησε πρώτα «Αποθήκευση» και επίλεξε φάκελο ή USB.")
-    }
-
-    private fun sanitizeName(raw: String): String =
-        raw.trim().replace("/", "_").replace("\\", "_")
-
-    private fun friendlyDocumentId(uri: Uri): String = try {
-        DocumentsContract.getDocumentId(uri).substringAfterLast(':').ifBlank { "Αποθήκευση" }
-    } catch (_: Exception) {
-        "Αποθήκευση"
+        toast("Πάτησε πρώτα «Χώρος / USB».")
+        findViewById<Button>(R.id.btnStorage).requestFocus()
     }
 
     private fun humanSize(bytes: Long): String {
@@ -435,14 +459,5 @@ class MainActivity : Activity() {
 
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
-
-    @Deprecated("Deprecated in Android, retained for API 26+ compatibility without extra dependencies")
-    override fun onBackPressed() {
-        if (navigationStack.isNotEmpty()) {
-            navigateUp()
-        } else {
-            super.onBackPressed()
-        }
     }
 }

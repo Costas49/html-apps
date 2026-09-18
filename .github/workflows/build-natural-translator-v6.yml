@@ -1,0 +1,33 @@
+name: Build Natural Translator v6
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'natural-translator-v6/**'
+      - '.github/workflows/build-natural-translator-v6.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build APK
+        run: |
+          chmod +x natural-translator-v6/build_apk.sh
+          natural-translator-v6/build_apk.sh
+      - name: Upload unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Natural-Translator-AI-Rector-v6-unsigned
+          path: natural-translator-v6/dist/Natural-Translator-AI-Rector-v6-UNSIGNED.apk
+          if-no-files-found: error

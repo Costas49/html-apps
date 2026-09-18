@@ -211,9 +211,9 @@ public class MainActivity extends Activity {
 
         TextView privacy = text(
             "Η βασική μετάφραση γίνεται με Google ML Kit στη συσκευή μετά τη λήψη του μοντέλου. " +
-            "Η «Ελληνική μεταγραφή», το «Συντακτικό» και οι «Συμβουλές» λειτουργούν τοπικά. " +
-            "Μόνο όταν πατάς «Γραμματική» στέλνεται το συγκεκριμένο κείμενο στην online υπηρεσία LanguageTool για έλεγχο. " +
-            "Η λειτουργία «Έννοια» χρησιμοποιεί online λεξικό για αγγλικές λέξεις και έχει τοπικό fallback μετάφρασης.",
+            "Για ελληνικό αποτέλεσμα λειτουργεί επιπλέον ο Natural Greek Max: τοπική εξομάλυνση ιδιωματισμών, σύνταξης και δημοσιογραφικού/καθημερινού ύφους. " +
+            "Όταν υπάρχει Internet, το ήδη μεταφρασμένο ελληνικό κείμενο μπορεί να περάσει αυτόματα από LanguageTool για ελαφρύ γραμματικό έλεγχο· αν η υπηρεσία δεν απαντήσει, η μετάφραση συνεχίζει κανονικά offline. " +
+            "Η «Ελληνική μεταγραφή», το «Συντακτικό» και οι «Συμβουλές» λειτουργούν τοπικά. Η λειτουργία «Έννοια» χρησιμοποιεί online λεξικό για αγγλικές λέξεις και έχει τοπικό fallback μετάφρασης.",
             12, MUTED, false
         );
         LinearLayout.LayoutParams privacyLp = matchWrap();
@@ -470,12 +470,30 @@ public class MainActivity extends Activity {
         translator.downloadModelIfNeeded(conditions)
             .addOnSuccessListener(unused -> {
                 setStatus("Μεταφράζω με το νευρωνικό μοντέλο…", false);
-                translator.translate(text)
+                String preparedText = NaturalGreekEngine.prepareSource(text, from.code, to.code);
+                translator.translate(preparedText)
                     .addOnSuccessListener(translated -> {
-                        output.setText(translated);
-                        output.setTag(to.code);
-                        setStatus("Ολοκληρώθηκε. Το μοντέλο μένει στη συσκευή για επόμενη χρήση.", false);
-                        setBusy(false);
+                        if ("el".equals(to.code)) {
+                            setStatus("Φυσικοποιώ τα ελληνικά — Natural Greek Max…", false);
+                        }
+                        NaturalGreekEngine.polishAsync(
+                            this,
+                            translated,
+                            text,
+                            from.code,
+                            to.code,
+                            natural -> {
+                                output.setText(natural);
+                                output.setTag(to.code);
+                                setStatus(
+                                    "el".equals(to.code)
+                                        ? "Ολοκληρώθηκε — Natural Greek Max."
+                                        : "Ολοκληρώθηκε. Το μοντέλο μένει στη συσκευή για επόμενη χρήση.",
+                                    false
+                                );
+                                setBusy(false);
+                            }
+                        );
                     })
                     .addOnFailureListener(e -> {
                         setStatus("Δεν ολοκληρώθηκε η μετάφραση. Δοκίμασε ξανά.", true);

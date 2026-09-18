@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="gr.kostas.naturaltranslator">
+    package="gr.kostas.naturaltranslator.v5">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -11,7 +11,7 @@
         android:label="Natural Translator AI Rector v5"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
-            android:name=".MainActivity"
+            android:name="gr.kostas.naturaltranslator.MainActivity"
             android:screenOrientation="unspecified"
             android:exported="true">
             <intent-filter>

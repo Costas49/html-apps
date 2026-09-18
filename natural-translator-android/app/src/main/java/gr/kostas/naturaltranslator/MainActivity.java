@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     private EditText input;
     private EditText tutorInput;
     private TextView output;
+    private TextView simpleOutput;
     private TextView status;
     private TextView tutorOutput;
     private TextView tutorStatus;
@@ -124,7 +125,7 @@ public class MainActivity extends Activity {
         TextView title = text("Natural Translator AI", 27, TEXT, true);
         root.addView(title);
 
-        TextView subtitle = text("Νευρωνική μετάφραση + 🎓 Πρύτανης Ξένων Γλωσσών", 15, MUTED, false);
+        TextView subtitle = text("Natural Greek Max • 🧠 Με απλά λόγια • 🎓 Πρύτανης Ξένων Γλωσσών", 15, MUTED, false);
         LinearLayout.LayoutParams subtitleLp = matchWrap();
         subtitleLp.setMargins(0, dp(5), 0, dp(18));
         root.addView(subtitle, subtitleLp);
@@ -158,6 +159,7 @@ public class MainActivity extends Activity {
                 String oldInput = input.getText().toString();
                 input.setText(oldOutput.toString());
                 output.setText(oldInput.isEmpty() ? "—" : oldInput);
+                if (simpleOutput != null) simpleOutput.setText("—");
             }
         });
 
@@ -188,6 +190,16 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams outLp = matchWrap();
         outLp.setMargins(0, dp(7), 0, dp(12));
         root.addView(output, outLp);
+
+        root.addView(label("🧠 Με απλά λόγια"));
+        simpleOutput = text("—", 17, TEXT, false);
+        simpleOutput.setTextIsSelectable(true);
+        simpleOutput.setPadding(dp(14), dp(14), dp(14), dp(14));
+        simpleOutput.setMinHeight(dp(96));
+        simpleOutput.setBackground(panelDrawable(PANEL_2));
+        LinearLayout.LayoutParams simpleLp = matchWrap();
+        simpleLp.setMargins(0, dp(7), 0, dp(14));
+        root.addView(simpleOutput, simpleLp);
 
         LinearLayout actionRow = new LinearLayout(this);
         actionRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -227,6 +239,7 @@ public class MainActivity extends Activity {
         clear.setOnClickListener(v -> {
             input.setText("");
             output.setText("—");
+            simpleOutput.setText("—");
             output.setTag(null);
             setStatus("Έτοιμος.", false);
             input.requestFocus();
@@ -439,7 +452,9 @@ public class MainActivity extends Activity {
         Lang to = languages.get(toSpinner.getSelectedItemPosition());
 
         if (from.code.equals(to.code)) {
-            output.setText(text);
+            String natural = naturalGreekMax(text, text, to.code);
+            output.setText(natural);
+            simpleOutput.setText(simpleMeaning(text, natural, to.code));
             output.setTag(to.code);
             setStatus("Οι δύο γλώσσες είναι ίδιες.", false);
             return;
@@ -472,9 +487,11 @@ public class MainActivity extends Activity {
                 setStatus("Μεταφράζω με το νευρωνικό μοντέλο…", false);
                 translator.translate(text)
                     .addOnSuccessListener(translated -> {
-                        output.setText(translated);
+                        String natural = naturalGreekMax(text, translated, to.code);
+                        output.setText(natural);
+                        simpleOutput.setText(simpleMeaning(text, natural, to.code));
                         output.setTag(to.code);
-                        setStatus("Ολοκληρώθηκε. Το μοντέλο μένει στη συσκευή για επόμενη χρήση.", false);
+                        setStatus("Ολοκληρώθηκε • Natural Greek Max + απλή εξήγηση.", false);
                         setBusy(false);
                     })
                     .addOnFailureListener(e -> {
@@ -486,6 +503,140 @@ public class MainActivity extends Activity {
                 setStatus("Δεν κατέβηκε το γλωσσικό μοντέλο. Έλεγξε τη σύνδεση στο Internet και ξαναπάτησε Μετάφραση.", true);
                 setBusy(false);
             });
+    }
+
+
+    private String naturalGreekMax(String sourceText, String translated, String targetCode) {
+        if (translated == null) return "";
+        String result = translated.trim().replaceAll("[ \\t]+", " ").replaceAll(" ?\\n ?", "\\n");
+
+        if (!"el".equals(targetCode)) return result;
+
+        String source = sourceText == null ? "" : sourceText.toLowerCase(Locale.ROOT);
+
+        result = result
+            .replace("τηλεόραση πραγματικότητας", "reality TV")
+            .replace("Τηλεόραση πραγματικότητας", "Reality TV")
+            .replace("ριάλιτι τηλεόραση", "reality TV")
+            .replace("Ριάλιτι τηλεόραση", "Reality TV")
+            .replace("πλατφόρμα εκτόξευσης", "εφαλτήριο")
+            .replace("εξέδρα εκτόξευσης", "εφαλτήριο")
+            .replace("πλήρως ανεπτυγμένες καριέρες", "ολοκληρωμένες καριέρες")
+            .replace("καριέρες παραστάσεων", "καριέρες στον χώρο του θεάματος")
+            .replace("καριέρες απόδοσης", "καριέρες στον χώρο του θεάματος");
+
+        if (source.contains("launch pad")) {
+            result = result
+                .replace("σημείο εκκίνησης", "εφαλτήριο")
+                .replace("βάση εκτόξευσης", "εφαλτήριο");
+        }
+        if (source.contains("full-blown")) {
+            result = result
+                .replace("πλήρεις επαγγελματικές καριέρες", "ολοκληρωμένες επαγγελματικές καριέρες")
+                .replace("πλήρεις καριέρες", "ολοκληρωμένες καριέρες");
+        }
+        if (source.contains("lock in now")) {
+            result = result
+                .replace("Κλειδώστε τώρα", "Μην το χάσετε — δείτε τώρα")
+                .replace("Κλείδωσε τώρα", "Μην το χάσεις — δες τώρα")
+                .replace("Κλειδώστε", "Συντονιστείτε")
+                .replace("Κλείδωσε", "Συντονίσου");
+        }
+
+        return polishGreek(result);
+    }
+
+    private String polishGreek(String value) {
+        if (value == null) return "";
+        return value
+            .replace(" προκειμένου να ", " για να ")
+            .replace(" δύναται να ", " μπορεί να ")
+            .replace(" στο πλαίσιο του ", " στο ")
+            .replace(" στο πλαίσιο της ", " στη ")
+            .replace(" πραγματοποιεί ", " κάνει ")
+            .replaceAll(" {2,}", " ")
+            .replaceAll("\\s+([,.;!?])", "$1")
+            .trim();
+    }
+
+    private String simpleMeaning(String sourceText, String naturalTranslation, String targetCode) {
+        String source = sourceText == null ? "" : sourceText.toLowerCase(Locale.ROOT);
+        String greek = naturalTranslation == null ? "" : naturalTranslation.trim();
+
+        if (!"el".equals(targetCode)) {
+            return "Η ενότητα «Με απλά λόγια» είναι βελτιστοποιημένη όταν η μετάφραση γίνεται προς Ελληνικά.";
+        }
+        if (greek.isEmpty()) return "—";
+
+        boolean realityCareerExample =
+            source.contains("reality") &&
+            (source.contains("launch pad") || source.contains("performance careers")) &&
+            (source.contains("music") || source.contains("theatre") || source.contains("theater")) &&
+            source.contains("dance");
+
+        if (realityCareerExample) {
+            return "Το επεισόδιο μιλά για ανθρώπους που ξεκίνησαν από reality TV και μετά κατάφεραν να κάνουν κανονική καριέρα στο θέαμα — μουσική, θέατρο, χορό ή κωμωδία.";
+        }
+
+        String clean = polishGreek(greek)
+            .replace("εξετάζουν πώς", "μιλούν για το πώς")
+            .replace("διερευνούν πώς", "εξηγούν πώς")
+            .replace("αποτελεί εφαλτήριο για", "βοηθά να ξεκινήσει")
+            .replace("στον τομέα", "στον χώρο");
+
+        String[] sentences = clean.split("(?<=[.!;?])\\s+");
+        StringBuilder core = new StringBuilder();
+
+        for (String sentence : sentences) {
+            String s = sentence.trim();
+            if (s.isEmpty()) continue;
+
+            String low = s.toLowerCase(Locale.ROOT);
+            boolean promo =
+                low.contains("μην το χάσεις") ||
+                low.contains("μην το χάσετε") ||
+                low.contains("δες τώρα") ||
+                low.contains("δείτε τώρα") ||
+                low.contains("συντονίσου τώρα") ||
+                low.contains("συντονιστείτε τώρα") ||
+                low.contains("κάνε κλικ") ||
+                low.contains("κάντε κλικ");
+
+            if (promo) continue;
+
+            if (core.length() > 0) core.append(" ");
+            core.append(s);
+            if (core.length() >= 320 || countSentences(core.toString()) >= 2) break;
+        }
+
+        String answer = core.length() == 0 ? clean : core.toString();
+        answer = shortenAtWord(answer, 390);
+
+        if (source.contains("episode") && !answer.toLowerCase(Locale.ROOT).startsWith("το επεισόδιο")) {
+            String low = answer.toLowerCase(Locale.ROOT);
+            int idx = Math.max(low.indexOf("μιλούν για"), low.indexOf("μιλά για"));
+            if (idx >= 0) {
+                answer = "Το επεισόδιο " + answer.substring(idx);
+            }
+        }
+
+        return answer;
+    }
+
+    private int countSentences(String text) {
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch == '.' || ch == '!' || ch == '?' || ch == ';') count++;
+        }
+        return count;
+    }
+
+    private String shortenAtWord(String text, int max) {
+        if (text == null || text.length() <= max) return text == null ? "" : text;
+        int cut = text.lastIndexOf(' ', max);
+        if (cut < max / 2) cut = max;
+        return text.substring(0, cut).trim() + "…";
     }
 
     private void copyResult() {

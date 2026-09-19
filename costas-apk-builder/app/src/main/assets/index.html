@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Costas Universal App</title>
+<style>
+:root{--bg:#080808;--panel:#181818;--orange:#ff9d00;--text:#f5f5f5;--muted:#aaa}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+body{min-height:100vh;padding:28px}
+main{max-width:1100px;margin:auto}
+.card{background:linear-gradient(180deg,#1b1b1b,#101010);border:1px solid #303030;border-radius:24px;padding:28px}
+h1{margin-top:0;font-size:34px}.tag{color:var(--orange)}
+p{font-size:20px;color:var(--muted);line-height:1.55}
+.row{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
+button,a{border:1px solid #5a430e;background:#17130b;color:#ffb11b;border-radius:14px;padding:15px 20px;font-size:19px;text-decoration:none}
+button:focus,a:focus,input:focus,textarea:focus{outline:none;box-shadow:0 0 0 5px rgba(255,157,0,.75)}
+code{color:#ffd27b}
+@media(max-width:760px){body{padding:16px}h1{font-size:28px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1><span class="tag">COSTAS</span> APK BUILDER</h1>
+    <p>Αυτό είναι το μόνιμο αρχείο <code>index.html</code>. Αντικατάστησέ το με τη δική σου HTML εφαρμογή και το GitHub θα δημιουργήσει εγκαταστάσιμο APK για Android 10 tablet και Android TV 12.</p>
+    <div class="row">
+      <button onclick="alert('Ο builder λειτουργεί σωστά.')">Δοκιμή</button>
+      <a href="https://www.google.com">Internet</a>
+    </div>
+  </section>
+</main>
+<script>
+document.addEventListener('keydown',e=>{
+  const els=[...document.querySelectorAll('button,a,input,textarea,select,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled);
+  if(!els.length)return;
+  let i=Math.max(0,els.indexOf(document.activeElement));
+  if(['ArrowRight','ArrowDown'].includes(e.key)){e.preventDefault();els[(i+1)%els.length].focus()}
+  if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.application'
+}
+
+def apkApplicationId = project.findProperty("apkApplicationId") ?: "com.costas.universalapp"
+def apkAppName = project.findProperty("apkAppName") ?: "Costas Universal App"
+def apkVersionCode = (project.findProperty("apkVersionCode") ?: "1").toInteger()
+def apkVersionName = project.findProperty("apkVersionName") ?: "1.0"
+
+android {
+    namespace 'com.costas.builder'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId apkApplicationId
+        minSdk 29
+        targetSdk 34
+        versionCode apkVersionCode
+        versionName apkVersionName
+        resValue "string", "app_name", apkAppName
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+}

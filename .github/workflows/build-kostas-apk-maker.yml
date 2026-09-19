@@ -1,0 +1,65 @@
+name: Build Kostas APK Maker
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "kostas-apk-maker/**"
+      - ".github/workflows/build-kostas-apk-maker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK 34
+        shell: bash
+        run: |
+          SDKMANAGER="$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f | head -1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK Maker
+        run: gradle -p kostas-apk-maker :app:assembleDebug --stacktrace
+
+      - name: Prepare APK
+        run: |
+          mkdir -p output
+          cp kostas-apk-maker/app/build/outputs/apk/debug/app-debug.apk output/Kostas-APK-Maker.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kostas-APK-Maker
+          path: output/Kostas-APK-Maker.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish latest APK Maker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view kostas-apk-maker-latest >/dev/null 2>&1; then
+            gh release upload kostas-apk-maker-latest output/Kostas-APK-Maker.apk --clobber
+          else
+            gh release create kostas-apk-maker-latest output/Kostas-APK-Maker.apk               --target "$GITHUB_SHA"               --title "Kostas APK Maker - Latest"               --notes "Installable Android 10+ APK Maker."
+          fi

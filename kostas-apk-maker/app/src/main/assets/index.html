@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Kostas APK Maker</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#eef2ff;font-family:system-ui,-apple-system,sans-serif}
+.wrap{max-width:880px;margin:auto;padding:22px}
+h1{margin:0 0 6px;font-size:30px}
+.sub{color:#aab5d6;margin:0 0 20px}
+.card{background:#131a2d;border:1px solid #27304a;border-radius:18px;padding:18px;margin:14px 0}
+label{display:block;font-weight:700;margin:13px 0 7px}
+input,textarea,button{font:inherit}
+input,textarea{width:100%;border:1px solid #394362;background:#0d1427;color:white;border-radius:12px;padding:12px}
+textarea{min-height:250px;resize:vertical;font-family:monospace;font-size:13px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+button{border:0;border-radius:12px;padding:13px 16px;font-weight:800;cursor:pointer}
+.primary{background:#6d5dfc;color:white;flex:1}
+.secondary{background:#25304e;color:white}
+.danger{background:#48232b;color:#ffd8dd}
+#status{white-space:pre-wrap;line-height:1.45;background:#090e1a;border-radius:12px;padding:13px;min-height:54px;color:#c9d5ff}
+.good{color:#85f0b0}.bad{color:#ff969e}
+.small{font-size:12px;color:#9ca8ca}
+#download{display:none;background:#16a36a;color:white;width:100%;margin-top:12px}
+@media(max-width:650px){.row{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚙️ Kostas APK Maker</h1>
+  <p class="sub">HTML → εγκαταστάσιμο Android APK, χωρίς να ψάχνεις μέσα στο GitHub.</p>
+
+  <div class="card">
+    <label>GitHub token</label>
+    <input id="token" type="password" placeholder="github_pat_... ή ghp_..." autocomplete="off">
+    <div class="actions">
+      <button class="secondary" id="saveToken">Αποθήκευση token στη συσκευή</button>
+      <button class="danger" id="clearToken">Διαγραφή token</button>
+    </div>
+    <p class="small">Χρειάζεται πρόσβαση στο repo Costas49/html-apps με Contents: Read/Write και Actions: Read/Write. Το token αποθηκεύεται τοπικά στη συσκευή.</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Όνομα εφαρμογής</label>
+        <input id="appName" value="Η Εφαρμογή μου">
+      </div>
+      <div>
+        <label>Package name</label>
+        <input id="packageName" value="com.costas.myapp">
+      </div>
+    </div>
+
+    <label>Φόρτωσε αρχείο HTML</label>
+    <input id="htmlFile" type="file" accept=".html,.htm,text/html">
+
+    <label>ή επικόλλησε HTML</label>
+    <textarea id="htmlCode" spellcheck="false"><!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Η εφαρμογή μου</title>
+</head>
+<body>
+<h1>Γεια σου!</h1>
+<p>Αυτό θα γίνει APK.</p>
+</body>
+</html></textarea>
+
+    <button class="primary" id="build">ΦΤΙΑΞΕ APK</button>
+  </div>
+
+  <div class="card">
+    <strong>Κατάσταση</strong>
+    <div id="status">Έτοιμο.</div>
+    <button id="download">⬇ ΚΑΤΕΒΑΣΕ ΤΟ APK</button>
+  </div>
+</div>
+
+<script>
+const OWNER='Costas49';
+const REPO='html-apps';
+const BRANCH='main';
+const API='https://api.github.com/repos/'+OWNER+'/'+REPO;
+const WORKFLOW='build-generated-app.yml';
+const DOWNLOAD='https://github.com/'+OWNER+'/'+REPO+'/releases/download/generated-apk-latest/Generated-App.apk';
+
+const $=id=>document.getElementById(id);
+const status=(msg,kind='')=>{
+  $('status').textContent=msg;
+  $('status').className=kind;
+};
+
+function nativeLoadToken(){
+  try{return AndroidVault.loadToken()||''}catch(e){return localStorage.getItem('github_token')||''}
+}
+function nativeSaveToken(v){
+  try{AndroidVault.saveToken(v)}catch(e){localStorage.setItem('github_token',v)}
+}
+function nativeClearToken(){
+  try{AndroidVault.clearToken()}catch(e){localStorage.removeItem('github_token')}
+}
+function openExternal(url){
+  try{AndroidVault.openExternal(url)}catch(e){location.href=url}
+}
+
+$('token').value=nativeLoadToken();
+
+$('saveToken').onclick=()=>{
+  const t=$('token').value.trim();
+  nativeSaveToken(t);
+  status(t?'Token αποθηκεύτηκε στη συσκευή.':'Δεν υπάρχει token.','good');
+};
+$('clearToken').onclick=()=>{
+  nativeClearToken(); $('token').value='';
+  status('Το αποθηκευμένο token διαγράφηκε.');
+};
+
+$('htmlFile').addEventListener('change',async e=>{
+  const f=e.target.files && e.target.files[0];
+  if(!f)return;
+  $('htmlCode').value=await f.text();
+  status('Φορτώθηκε: '+f.name,'good');
+});
+
+function headers(token){
+  return {
+    'Accept':'application/vnd.github+json',
+    'Authorization':'Bearer '+token,
+    'X-GitHub-Api-Version':'2022-11-28'
+  };
+}
+
+async function api(token,path,options={}){
+  const h={...headers(token),...(options.headers||{})};
+  const r=await fetch(API+path,{...options,headers:h});
+  if(r.status===204)return null;
+  const text=await r.text();
+  let data={};
+  try{data=text?JSON.parse(text):{}}catch(e){data={message:text}}
+  if(!r.ok)throw new Error((data && data.message)||('GitHub HTTP '+r.status));
+  return data;
+}
+
+function b64utf8(str){
+  const bytes=new TextEncoder().encode(str);
+  let binary='';
+  const step=0x8000;
+  for(let i=0;i<bytes.length;i+=step){
+    binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+step,bytes.length)));
+  }
+  return btoa(binary);
+}
+
+async function upsert(token,path,content,message){
+  let sha=null;
+  try{
+    const old=await api(token,'/contents/'+path+'?ref='+encodeURIComponent(BRANCH));
+    sha=old.sha;
+  }catch(e){
+    if(!String(e.message).includes('Not Found')) throw e;
+  }
+  const body={message,content:b64utf8(content),branch:BRANCH};
+  if(sha)body.sha=sha;
+  return api(token,'/contents/'+path,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+}
+
+function xmlEscape(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+function validPackage(p){
+  return /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*){1,}$/.test(p);
+}
+
+function buildGradle(packageName){
+  const vc=Math.floor(Date.now()/1000);
+  return `plugins { id 'com.android.application' }
+
+android {
+  namespace 'com.costas.generatedwrapper'
+  compileSdk 34
+
+  defaultConfig {
+    applicationId "${packageName}"
+    minSdk 29
+    targetSdk 34
+    versionCode ${vc}
+    versionName "1.0"
+  }
+
+  buildTypes {
+    debug { minifyEnabled false }
+    release { minifyEnabled false }
+  }
+}
+`;
+}
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function waitForRun(token,since){
+  for(let i=0;i<30;i++){
+    const d=await api(token,'/actions/workflows/'+WORKFLOW+'/runs?event=workflow_dispatch&branch='+BRANCH+'&per_page=10');
+    const runs=(d.workflow_runs||[]).filter(r=>new Date(r.created_at).getTime()>=since-15000);
+    if(runs.length){
+      runs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      return runs[0];
+    }
+    status('Το build ξεκίνησε. Περιμένω να εμφανιστεί στο GitHub Actions…');
+    await sleep(3000);
+  }
+  throw new Error('Δεν βρέθηκε το workflow run.');
+}
+
+async function waitForCompletion(token,run){
+  for(let i=0;i<120;i++){
+    const r=await api(token,'/actions/runs/'+run.id);
+    status('Build APK: '+r.status+(r.status==='completed'?' / '+r.conclusion:'')+'\nΜην κλείσεις την εφαρμογή.');
+    if(r.status==='completed'){
+      if(r.conclusion==='success')return r;
+      throw new Error('Το build ολοκληρώθηκε με αποτέλεσμα: '+r.conclusion);
+    }
+    await sleep(5000);
+  }
+  throw new Error('Το build άργησε υπερβολικά.');
+}
+
+$('download').onclick=()=>openExternal(DOWNLOAD);
+
+$('build').onclick=async()=>{
+  $('download').style.display='none';
+  const token=$('token').value.trim()||nativeLoadToken();
+  const appName=$('appName').value.trim();
+  const packageName=$('packageName').value.trim();
+  const html=$('htmlCode').value;
+
+  if(!token){status('Χρειάζεται GitHub token.','bad');return}
+  if(!appName){status('Βάλε όνομα εφαρμογής.','bad');return}
+  if(!validPackage(packageName)){status('Το package name δεν είναι σωστό. Παράδειγμα: com.costas.myapp','bad');return}
+  if(!html.trim()){status('Δεν υπάρχει HTML.','bad');return}
+
+  nativeSaveToken(token);
+  $('build').disabled=true;
+  try{
+    status('1/4 Ανεβάζω το HTML…');
+    await upsert(token,'generated-app/app/src/main/assets/index.html',html,'APK Maker: update HTML');
+
+    status('2/4 Ρυθμίζω package name…');
+    await upsert(token,'generated-app/app/build.gradle',buildGradle(packageName),'APK Maker: update application id');
+
+    status('3/4 Ρυθμίζω όνομα εφαρμογής…');
+    const strings='<resources>\n  <string name="app_name">'+xmlEscape(appName)+'</string>\n</resources>\n';
+    await upsert(token,'generated-app/app/src/main/res/values/strings.xml',strings,'APK Maker: update app name');
+
+    status('4/4 Ξεκινάω το Android build…');
+    const since=Date.now();
+    await api(token,'/actions/workflows/'+WORKFLOW+'/dispatches',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ref:BRANCH})
+    });
+
+    const run=await waitForRun(token,since);
+    await waitForCompletion(token,run);
+
+    status('✅ Το APK είναι έτοιμο.\nΠάτησε «ΚΑΤΕΒΑΣΕ ΤΟ APK».','good');
+    $('download').style.display='block';
+  }catch(e){
+    status('❌ '+e.message,'bad');
+  }finally{
+    $('build').disabled=false;
+  }
+};
+</script>
+</body>
+</html>

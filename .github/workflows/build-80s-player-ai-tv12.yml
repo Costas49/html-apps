@@ -1,0 +1,425 @@
+name: Build 80s Hits Player AI TV12
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 34
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Android TV project
+        shell: bash
+        run: |
+          rm -rf tvbuild
+          mkdir -p tvbuild/app/src/main/java/com/costas/eightiesplayer
+          mkdir -p tvbuild/app/src/main/assets
+          mkdir -p tvbuild/app/src/main/res/values
+          mkdir -p tvbuild/app/src/main/res/drawable
+
+          cat > tvbuild/settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "EightiesHitsPlayerTV"
+          include(":app")
+          EOF
+
+          cat > tvbuild/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat > tvbuild/app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.costas.eightiesplayer'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.costas.eightiesplayer"
+                  minSdk 23
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+          }
+          EOF
+
+          cat > tvbuild/app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:colorAccent">#ff9d00</item>
+                  <item name="android:navigationBarColor">#090909</item>
+                  <item name="android:windowLightStatusBar">false</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > tvbuild/app/src/main/res/drawable/tv_banner.xml <<'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+              <solid android:color="#151515"/>
+              <corners android:radius="12dp"/>
+          </shape>
+          EOF
+
+          cat > tvbuild/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+
+              <uses-feature android:name="android.software.leanback" android:required="false"/>
+              <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+
+              <application
+                  android:allowBackup="true"
+                  android:usesCleartextTraffic="true"
+                  android:theme="@style/AppTheme"
+                  android:label="80s Hits Player AI"
+                  android:banner="@drawable/tv_banner">
+                  <activity
+                      android:name=".MainActivity"
+                      android:screenOrientation="landscape"
+                      android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > tvbuild/app/src/main/java/com/costas/eightiesplayer/MainActivity.java <<'EOF'
+          package com.costas.eightiesplayer;
+
+          import android.app.Activity;
+          import android.app.DownloadManager;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.os.Environment;
+          import android.view.KeyEvent;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+
+          import java.io.BufferedReader;
+          import java.io.InputStream;
+          import java.io.InputStreamReader;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.nio.charset.StandardCharsets;
+
+          public class MainActivity extends Activity {
+              private WebView webView;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  webView = new WebView(this);
+                  setContentView(webView);
+
+                  WebSettings s = webView.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setMediaPlaybackRequiresUserGesture(false);
+                  s.setAllowFileAccess(true);
+                  s.setAllowContentAccess(true);
+                  s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+
+                  webView.addJavascriptInterface(new AndroidBridge(), "AndroidTV");
+                  webView.setWebChromeClient(new WebChromeClient());
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                          Uri uri = request.getUrl();
+                          String scheme = uri.getScheme();
+                          if ("http".equals(scheme) || "https".equals(scheme)) {
+                              try {
+                                  startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                              } catch (Exception ignored) {}
+                              return true;
+                          }
+                          return false;
+                      }
+                  });
+
+                  webView.setOnKeyListener((v, keyCode, event) -> {
+                      if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_BACK) {
+                          if (webView.canGoBack()) webView.goBack();
+                          else finish();
+                          return true;
+                      }
+                      return false;
+                  });
+
+                  webView.loadUrl("file:///android_asset/index.html");
+              }
+
+              public class AndroidBridge {
+                  @JavascriptInterface
+                  public void openExternal(String url) {
+                      try {
+                          startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                      } catch (Exception ignored) {}
+                  }
+
+                  @JavascriptInterface
+                  public void download(String url, String filename) {
+                      try {
+                          String safeName = (filename == null || filename.trim().isEmpty()) ? "audio.mp3" : filename;
+                          DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+                          req.setTitle(safeName);
+                          req.setDescription("Λήψη αρχείου ήχου");
+                          req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                          req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, safeName);
+                          DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                          dm.enqueue(req);
+                      } catch (Exception e) {
+                          jsCallback("window.onNativeError", "Αποτυχία λήψης: " + e.getMessage());
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void askGemini(String apiKey, String model, String prompt) {
+                      new Thread(() -> {
+                          HttpURLConnection conn = null;
+                          try {
+                              String m = (model == null || model.trim().isEmpty()) ? "gemini-2.5-flash" : model.trim();
+                              URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/" +
+                                      Uri.encode(m) + ":generateContent?key=" + Uri.encode(apiKey));
+                              conn = (HttpURLConnection) url.openConnection();
+                              conn.setRequestMethod("POST");
+                              conn.setConnectTimeout(20000);
+                              conn.setReadTimeout(60000);
+                              conn.setDoOutput(true);
+                              conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+                              JSONObject body = new JSONObject();
+                              JSONObject sys = new JSONObject();
+                              JSONArray sysParts = new JSONArray();
+                              sysParts.put(new JSONObject().put("text",
+                                      "Είσαι προσωπικός βοηθός μουσικής σε Android TV player. Απάντα στα ελληνικά, σύντομα και καθαρά. " +
+                                      "Βοήθα με μουσικές προτάσεις, πληροφορίες καλλιτεχνών, playlists και χειρισμό του player. " +
+                                      "Μην δίνεις οδηγίες για παράνομο ripping ή παραβίαση πνευματικών δικαιωμάτων."));
+                              sys.put("parts", sysParts);
+                              body.put("systemInstruction", sys);
+
+                              JSONArray contents = new JSONArray();
+                              JSONObject item = new JSONObject();
+                              JSONArray parts = new JSONArray();
+                              parts.put(new JSONObject().put("text", prompt));
+                              item.put("parts", parts);
+                              contents.put(item);
+                              body.put("contents", contents);
+
+                              byte[] data = body.toString().getBytes(StandardCharsets.UTF_8);
+                              try (OutputStream os = conn.getOutputStream()) {
+                                  os.write(data);
+                              }
+
+                              int code = conn.getResponseCode();
+                              InputStream is = (code >= 200 && code < 300) ? conn.getInputStream() : conn.getErrorStream();
+                              BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                              StringBuilder sb = new StringBuilder();
+                              String line;
+                              while ((line = br.readLine()) != null) sb.append(line);
+
+                              JSONObject response = new JSONObject(sb.toString());
+                              if (code < 200 || code >= 300) {
+                                  String msg = response.optJSONObject("error") != null
+                                          ? response.optJSONObject("error").optString("message", "HTTP " + code)
+                                          : "HTTP " + code;
+                                  jsCallback("window.onGeminiError", msg);
+                                  return;
+                              }
+
+                              JSONArray candidates = response.optJSONArray("candidates");
+                              StringBuilder answer = new StringBuilder();
+                              if (candidates != null && candidates.length() > 0) {
+                                  JSONObject content = candidates.optJSONObject(0).optJSONObject("content");
+                                  if (content != null) {
+                                      JSONArray p = content.optJSONArray("parts");
+                                      if (p != null) {
+                                          for (int i = 0; i < p.length(); i++) {
+                                              String t = p.optJSONObject(i).optString("text", "");
+                                              if (!t.isEmpty()) {
+                                                  if (answer.length() > 0) answer.append("\n");
+                                                  answer.append(t);
+                                              }
+                                          }
+                                      }
+                                  }
+                              }
+                              jsCallback("window.onGeminiResponse",
+                                      answer.length() == 0 ? "Δεν επέστρεψε κείμενο." : answer.toString());
+                          } catch (Exception e) {
+                              jsCallback("window.onGeminiError", e.getMessage() == null ? "Άγνωστο σφάλμα" : e.getMessage());
+                          } finally {
+                              if (conn != null) conn.disconnect();
+                          }
+                      }).start();
+                  }
+              }
+
+              private void jsCallback(String functionName, String text) {
+                  runOnUiThread(() -> webView.evaluateJavascript(
+                          functionName + "(" + JSONObject.quote(text == null ? "" : text) + ")", null));
+              }
+          }
+          EOF
+
+          cat > tvbuild/app/src/main/assets/index.html <<'EOF'
+          <!doctype html>
+          <html lang="el">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+          <title>80s Hits Player AI</title>
+          <style>
+          :root{--bg:#070707;--panel:#171717;--line:#303030;--orange:#ff9d00;--green:#18b98b;--muted:#9b9b9b}
+          *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#f5f5f5;font-family:Arial,sans-serif}
+          body{min-height:100vh;padding:20px 24px 34px}button,input,textarea{font:inherit}
+          button,input,textarea{outline:none}button:focus,input:focus,textarea:focus{box-shadow:0 0 0 4px rgba(255,157,0,.8)!important;border-color:var(--orange)!important}
+          .top{display:flex;align-items:center;gap:18px;max-width:1500px;margin:auto}.logo{width:68px;height:68px;border-radius:17px;background:var(--orange);display:grid;place-items:center;color:#111;font-size:34px;box-shadow:0 10px 25px #000}
+          .brand{flex:1}.brand h1{margin:0;font-family:monospace;letter-spacing:3px;font-size:29px}.brand p{margin:8px 0 0;color:var(--muted);font-family:monospace}.badge{display:inline-block;border:1px solid #6c4d06;color:#ffb22e;border-radius:999px;padding:6px 11px;font-size:14px;margin-left:8px}
+          .btn{border:1px solid #594211;background:#17130c;color:#ffb11b;border-radius:14px;padding:13px 18px;cursor:pointer}.btn.primary{background:var(--orange);color:#151515;border:none;font-weight:700}
+          .grid{max-width:1500px;margin:20px auto 0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(360px,.55fr);gap:18px}.card{background:linear-gradient(180deg,#181818,#0e0e0e);border:1px solid #292929;border-radius:26px;box-shadow:0 20px 45px rgba(0,0,0,.28);overflow:hidden}
+          .deck{padding:26px}.deckbar{display:flex;align-items:center;gap:15px;border-bottom:1px solid #1f3c33;padding-bottom:20px}.deckname{background:#25251f;border-radius:999px;padding:14px 22px;color:#ffd059;font-family:monospace;font-size:22px;flex:1}.active{color:var(--green);font-family:monospace}
+          .cassette{margin:26px auto 8px;max-width:850px;border:4px solid #48444b;border-radius:18px;background:#262329;padding:15px}.label{background:#f0dda2;color:#2a2a2a;border-radius:4px;padding:13px 20px;display:flex;justify-content:space-between;font-family:Georgia,serif;font-size:22px}
+          .search{padding:22px}.searchbox{display:flex;gap:12px}.searchbox input{flex:1;background:#080808;border:1px solid #353535;color:#fff;border-radius:14px;padding:16px 18px;font-size:18px}.tags{display:flex;gap:10px;overflow:auto;padding:18px 0 4px}.chip{white-space:nowrap;border:1px solid #2b2b2b;background:#1c1c1c;color:#aaa;border-radius:999px;padding:10px 18px}.chip.activechip{background:var(--orange);color:#111;font-weight:700}
+          .now{padding:25px}.timeline{display:grid;grid-template-columns:60px 1fr 60px;gap:12px;align-items:center;color:#aaa;font-family:monospace;font-size:20px}.bar{height:14px;background:#2b2730;border-radius:999px;overflow:hidden}.progress{height:100%;width:0;background:#d58500}
+          .track{display:flex;align-items:center;gap:18px;margin-top:25px}.cover{width:82px;height:82px;border-radius:14px;background:radial-gradient(circle at 20% 20%,#00d4ff,#161d53 45%,#00b383 75%,#121212);box-shadow:0 8px 20px #000}.meta{flex:1}.meta h2{margin:0 0 8px}.meta p{margin:0;color:#aaa}
+          .controls{display:flex;justify-content:center;gap:18px;align-items:center;margin:28px 0}.round{width:58px;height:58px;border-radius:50%;border:1px solid #282828;background:#111;color:#ddd;font-size:23px}.play{width:86px;height:86px;background:var(--orange);color:#111;font-size:32px;box-shadow:0 12px 26px rgba(255,157,0,.18)}
+          .bottomline{display:flex;gap:15px;align-items:center;justify-content:center}.vol{accent-color:var(--orange);width:180px}.ai{padding:22px;display:flex;flex-direction:column;min-height:690px}.ai h2{margin:0 0 6px}.ai small{color:#aaa}.keyrow{display:flex;gap:8px;margin:14px 0}.keyrow input{flex:1;background:#080808;border:1px solid #353535;border-radius:12px;color:#fff;padding:12px}
+          .chat{flex:1;background:#0b0b0b;border:1px solid #262626;border-radius:16px;padding:14px;overflow:auto;min-height:280px;max-height:420px}.msg{padding:11px 12px;border-radius:12px;margin:8px 0;line-height:1.45}.me{background:#252525}.bot{background:#2a1e08;border-left:3px solid var(--orange)}
+          .ask{display:flex;gap:8px;margin-top:12px}.ask textarea{flex:1;resize:none;background:#080808;border:1px solid #353535;border-radius:12px;color:#fff;padding:12px;height:72px}.toolrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.note{font-size:13px;color:#8c8c8c;line-height:1.4;margin-top:10px}
+          .toast{position:fixed;left:50%;bottom:35px;transform:translateX(-50%);background:#222;border:1px solid #444;padding:12px 18px;border-radius:12px;display:none;z-index:20}@media(max-width:900px){.grid{grid-template-columns:1fr}.ai{min-height:auto}.brand h1{font-size:21px}}
+          </style>
+          </head>
+          <body>
+          <div class="top"><div class="logo">◉</div><div class="brand"><h1>80S HITS PLAYER <span class="badge">YOUTUBE HQ</span></h1><p><span style="color:#0c9">●</span> HQ Audio Engine • 80s Classics • Android TV</p></div><button class="btn primary" onclick="focusUrl()">＋ URL</button></div>
+          <div class="grid">
+            <main>
+              <section class="card deck"><div class="deckbar"><div class="deckname">⌁ HI-FI STEREO DECK<br>1980s</div><div>DOLBY B-NR:</div><div class="active">ACTIVE</div></div><div class="cassette"><div class="label"><span>CHROME C-90 &nbsp; SIDE A</span><strong id="cassTitle">Take On Me</strong></div></div></section>
+              <section class="card search" style="margin-top:18px"><div class="searchbox"><input id="q" placeholder="Αναζήτηση τραγουδιού, καλλιτέχνη, έτους..." onkeydown="if(event.key==='Enter')googleSearch()"><button class="btn primary" onclick="googleSearch()">Αναζήτηση</button></div><div class="tags"><button class="chip activechip">Όλα τα Hits</button><button class="chip">Synth-Pop / New Wave</button><button class="chip">Rock Classics</button><button class="chip">Ballads</button></div></section>
+              <section class="card now" style="margin-top:18px">
+                <div class="timeline"><span id="pos">0:00</span><div class="bar"><div class="progress" id="progress"></div></div><span id="dur">0:00</span></div>
+                <div class="track"><div class="cover"></div><div class="meta"><h2 id="title">Take On Me</h2><p id="artist">A-ha (1985)</p></div><button class="round" onclick="toggleFav()">♥</button></div>
+                <div class="controls"><button class="round" onclick="seek(-10)">↶</button><button class="round" onclick="prev()">|◀</button><button class="round play" id="playBtn" onclick="togglePlay()">▶</button><button class="round" onclick="next()">▶|</button><button class="round" onclick="seek(10)">↷</button></div>
+                <div class="bottomline"><button class="btn">⌁ HI-FI DECK</button><span>🔊</span><input class="vol" type="range" min="0" max="1" value=".8" step=".01" oninput="audio.volume=this.value"></div><audio id="audio"></audio>
+              </section>
+            </main>
+            <aside class="card ai">
+              <h2>Gemini προσωπικός βοηθός</h2><small>Βάζεις εσύ το API key. Αποθηκεύεται μόνο τοπικά στη συσκευή.</small>
+              <div class="keyrow"><input id="apiKey" type="password" placeholder="Gemini API key"><button class="btn" onclick="saveKey()">Αποθήκευση</button></div>
+              <div class="keyrow"><input id="model" value="gemini-2.5-flash" placeholder="μοντέλο Gemini"></div>
+              <div id="chat" class="chat"><div class="msg bot">Γεια σου. Μπορώ να προτείνω τραγούδια, να φτιάξω playlist και να σε βοηθήσω με τον player.</div></div>
+              <div class="ask"><textarea id="prompt" placeholder="Ρώτα το Gemini..." onkeydown="if(event.ctrlKey&&event.key==='Enter')askGemini()"></textarea><button class="btn primary" onclick="askGemini()">AI</button></div>
+              <div class="toolrow"><button class="btn" onclick="focusUrl()">Direct MP3 URL</button><button class="btn" onclick="downloadCurrent()">Λήψη νόμιμου MP3</button></div>
+              <div class="keyrow"><input id="directUrl" placeholder="https://.../audio.mp3"><button class="btn" onclick="loadDirect()">Φόρτωσε</button></div>
+              <div class="note">Υποστηρίζει direct MP3 URL, δικά σου αρχεία και νόμιμες/public-domain πηγές. Δεν κάνει ripping προστατευμένης μουσικής από YouTube ή Google.</div>
+            </aside>
+          </div>
+          <div id="toast" class="toast"></div>
+          <script>
+          const audio=document.getElementById('audio');
+          const tracks=[{t:'Take On Me',a:'A-ha (1985)'},{t:'Everybody Wants to Rule the World',a:'Tears for Fears (1985)'},{t:'True',a:'Spandau Ballet (1983)'},{t:'The Power of Love',a:'Frankie Goes to Hollywood (1984)'}];
+          let idx=0,waitNode=null;
+          function showToast(s){const t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',2400)}
+          window.onNativeError=showToast;
+          function updateMeta(){title.textContent=tracks[idx].t;artist.textContent=tracks[idx].a;cassTitle.textContent=tracks[idx].t}
+          function togglePlay(){if(!audio.src){showToast('Βάλε direct MP3 URL.');return}audio.paused?audio.play():audio.pause()}
+          audio.onplay=()=>playBtn.textContent='❚❚';audio.onpause=()=>playBtn.textContent='▶';
+          audio.ontimeupdate=()=>{if(audio.duration){progress.style.width=(audio.currentTime/audio.duration*100)+'%';pos.textContent=fmt(audio.currentTime);dur.textContent=fmt(audio.duration)}}
+          function fmt(s){s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+          function seek(s){audio.currentTime=Math.max(0,Math.min(audio.duration||0,audio.currentTime+s))}
+          function prev(){idx=(idx-1+tracks.length)%tracks.length;updateMeta()}function next(){idx=(idx+1)%tracks.length;updateMeta()}function toggleFav(){showToast('Αγαπημένο ✓')}
+          function openExternal(url){if(window.AndroidTV&&AndroidTV.openExternal)AndroidTV.openExternal(url)}
+          function googleSearch(){const q=document.getElementById('q').value.trim();if(!q)return;openExternal('https://www.google.com/search?q='+encodeURIComponent(q+' official audio legal mp3'))}
+          function focusUrl(){document.getElementById('directUrl').focus()}
+          function loadDirect(){const u=directUrl.value.trim();if(!/^https?:\/\//i.test(u)){showToast('Χρειάζεται πλήρες http/https URL');return}audio.src=u;audio.load();title.textContent='Direct audio';artist.textContent='Online audio';cassTitle.textContent='Direct audio';showToast('Το URL φορτώθηκε')}
+          function downloadCurrent(){const u=directUrl.value.trim()||audio.src;if(!u){showToast('Δεν υπάρχει direct MP3 URL');return}let fn='audio.mp3';try{fn=(new URL(u).pathname.split('/').pop()||'audio.mp3').split('?')[0];if(!fn.toLowerCase().endsWith('.mp3'))fn='audio.mp3'}catch(e){}if(window.AndroidTV&&AndroidTV.download)AndroidTV.download(u,fn)}
+          function saveKey(){localStorage.setItem('geminiKey',apiKey.value.trim());localStorage.setItem('geminiModel',model.value.trim());showToast('Αποθηκεύτηκε τοπικά')}
+          apiKey.value=localStorage.getItem('geminiKey')||'';model.value=localStorage.getItem('geminiModel')||'gemini-2.5-flash';
+          function addMsg(text,cls){const d=document.createElement('div');d.className='msg '+cls;d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+          function askGemini(){const key=apiKey.value.trim(),m=model.value.trim()||'gemini-2.5-flash',p=prompt.value.trim();if(!key){showToast('Βάλε Gemini API key');return}if(!p)return;addMsg(p,'me');prompt.value='';waitNode=addMsg('Σκέφτομαι…','bot');AndroidTV.askGemini(key,m,p)}
+          window.onGeminiResponse=function(text){if(waitNode){waitNode.textContent=text;waitNode=null}else addMsg(text,'bot')}
+          window.onGeminiError=function(text){if(waitNode){waitNode.textContent='Σφάλμα Gemini: '+text;waitNode=null}else addMsg('Σφάλμα Gemini: '+text,'bot')}
+          updateMeta();
+          </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Build APK
+        run: gradle -p tvbuild :app:assembleDebug --stacktrace
+
+      - name: Prepare APK
+        run: |
+          mkdir -p out
+          cp tvbuild/app/build/outputs/apk/debug/app-debug.apk out/80s_Hits_Player_AI_TV12.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 80s-Hits-Player-AI-TV12
+          path: out/80s_Hits_Player_AI_TV12.apk
+          if-no-files-found: error

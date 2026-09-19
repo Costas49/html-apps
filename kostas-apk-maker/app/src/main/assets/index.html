@@ -10,7 +10,7 @@
 body{margin:0;background:#0b1020;color:#eef2ff;font-family:system-ui,-apple-system,sans-serif}
 .wrap{max-width:880px;margin:auto;padding:22px}
 h1{margin:0 0 6px;font-size:30px}
-.sub{color:#aab5d6;margin:0 0 20px}
+.sub{color:#aab5d6;margin:0 0 20px;line-height:1.45}
 .card{background:#131a2d;border:1px solid #27304a;border-radius:18px;padding:18px;margin:14px 0}
 label{display:block;font-weight:700;margin:13px 0 7px}
 input,textarea,button{font:inherit}
@@ -19,29 +19,32 @@ textarea{min-height:250px;resize:vertical;font-family:monospace;font-size:13px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
 button{border:0;border-radius:12px;padding:13px 16px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.55}
 .primary{background:#6d5dfc;color:white;flex:1}
 .secondary{background:#25304e;color:white}
 .danger{background:#48232b;color:#ffd8dd}
-#status{white-space:pre-wrap;line-height:1.45;background:#090e1a;border-radius:12px;padding:13px;min-height:54px;color:#c9d5ff}
+#status{white-space:pre-wrap;line-height:1.45;background:#090e1a;border-radius:12px;padding:13px;min-height:70px;color:#c9d5ff}
 .good{color:#85f0b0}.bad{color:#ff969e}
-.small{font-size:12px;color:#9ca8ca}
+.small{font-size:12px;color:#9ca8ca;line-height:1.45}
+.note{border-left:4px solid #6d5dfc;padding-left:10px}
 #download{display:none;background:#16a36a;color:white;width:100%;margin-top:12px}
+#actions{background:#25304e;color:white;width:100%;margin-top:10px}
 @media(max-width:650px){.row{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:25px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>⚙️ Kostas APK Maker</h1>
-  <p class="sub">HTML → εγκαταστάσιμο Android APK, χωρίς να ψάχνεις μέσα στο GitHub.</p>
+  <h1>⚙️ Kostas APK Maker 2</h1>
+  <p class="sub">HTML → APK με ένα πάτημα. Το GitHub workflow είναι ήδη έτοιμο και ξεκινά αυτόματα.</p>
 
   <div class="card">
     <label>GitHub token</label>
     <input id="token" type="password" placeholder="github_pat_... ή ghp_..." autocomplete="off">
     <div class="actions">
-      <button class="secondary" id="saveToken">Αποθήκευση token στη συσκευή</button>
+      <button class="secondary" id="saveToken">Αποθήκευση token</button>
       <button class="danger" id="clearToken">Διαγραφή token</button>
     </div>
-    <p class="small">Χρειάζεται πρόσβαση στο repo Costas49/html-apps με Contents: Read/Write και Actions: Read/Write. Το token αποθηκεύεται τοπικά στη συσκευή.</p>
+    <p class="small note">Στη νέα έκδοση το token χρειάζεται μόνο πρόσβαση στο repository και <b>Contents: Read and write</b>. Δεν χρειάζεται Actions: write ούτε δημιουργία workflow από την εφαρμογή.</p>
   </div>
 
   <div class="card">
@@ -80,6 +83,7 @@ button{border:0;border-radius:12px;padding:13px 16px;font-weight:800;cursor:poin
     <strong>Κατάσταση</strong>
     <div id="status">Έτοιμο.</div>
     <button id="download">⬇ ΚΑΤΕΒΑΣΕ ΤΟ APK</button>
+    <button id="actions">Άνοιγμα GitHub Actions</button>
   </div>
 </div>
 
@@ -89,7 +93,9 @@ const REPO='html-apps';
 const BRANCH='main';
 const API='https://api.github.com/repos/'+OWNER+'/'+REPO;
 const WORKFLOW='build-generated-app.yml';
+const REQUEST_PATH='generated-app/build-request.json';
 const DOWNLOAD='https://github.com/'+OWNER+'/'+REPO+'/releases/download/generated-apk-latest/Generated-App.apk';
+const ACTIONS_URL='https://github.com/'+OWNER+'/'+REPO+'/actions/workflows/'+WORKFLOW;
 
 const $=id=>document.getElementById(id);
 const status=(msg,kind='')=>{
@@ -115,10 +121,11 @@ $('token').value=nativeLoadToken();
 $('saveToken').onclick=()=>{
   const t=$('token').value.trim();
   nativeSaveToken(t);
-  status(t?'Token αποθηκεύτηκε στη συσκευή.':'Δεν υπάρχει token.','good');
+  status(t?'Token αποθηκεύτηκε στη συσκευή.':'Δεν υπάρχει token.',t?'good':'bad');
 };
 $('clearToken').onclick=()=>{
-  nativeClearToken(); $('token').value='';
+  nativeClearToken();
+  $('token').value='';
   status('Το αποθηκευμένο token διαγράφηκε.');
 };
 
@@ -129,7 +136,7 @@ $('htmlFile').addEventListener('change',async e=>{
   status('Φορτώθηκε: '+f.name,'good');
 });
 
-function headers(token){
+function authHeaders(token){
   return {
     'Accept':'application/vnd.github+json',
     'Authorization':'Bearer '+token,
@@ -137,14 +144,28 @@ function headers(token){
   };
 }
 
-async function api(token,path,options={}){
-  const h={...headers(token),...(options.headers||{})};
+async function apiAuth(token,path,options={}){
+  const h={...authHeaders(token),...(options.headers||{})};
   const r=await fetch(API+path,{...options,headers:h});
   if(r.status===204)return null;
   const text=await r.text();
   let data={};
   try{data=text?JSON.parse(text):{}}catch(e){data={message:text}}
-  if(!r.ok)throw new Error((data && data.message)||('GitHub HTTP '+r.status));
+  if(!r.ok)throw new Error((data&&data.message)||('GitHub HTTP '+r.status));
+  return data;
+}
+
+async function apiPublic(path){
+  const r=await fetch(API+path,{
+    headers:{
+      'Accept':'application/vnd.github+json',
+      'X-GitHub-Api-Version':'2022-11-28'
+    }
+  });
+  const text=await r.text();
+  let data={};
+  try{data=text?JSON.parse(text):{}}catch(e){data={message:text}}
+  if(!r.ok)throw new Error((data&&data.message)||('GitHub HTTP '+r.status));
   return data;
 }
 
@@ -158,127 +179,110 @@ function b64utf8(str){
   return btoa(binary);
 }
 
-async function upsert(token,path,content,message){
+async function upsertRequest(token,content){
   let sha=null;
   try{
-    const old=await api(token,'/contents/'+path+'?ref='+encodeURIComponent(BRANCH));
+    const old=await apiAuth(token,'/contents/'+REQUEST_PATH+'?ref='+encodeURIComponent(BRANCH));
     sha=old.sha;
   }catch(e){
-    if(!String(e.message).includes('Not Found')) throw e;
+    if(!String(e.message).includes('Not Found'))throw e;
   }
-  const body={message,content:b64utf8(content),branch:BRANCH};
+
+  const body={
+    message:'APK Maker 2: new build request',
+    content:b64utf8(content),
+    branch:BRANCH
+  };
   if(sha)body.sha=sha;
-  return api(token,'/contents/'+path,{
+
+  return apiAuth(token,'/contents/'+REQUEST_PATH,{
     method:'PUT',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(body)
   });
 }
 
-function xmlEscape(s){
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-          .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-}
-
 function validPackage(p){
   return /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*){1,}$/.test(p);
 }
 
-function buildGradle(packageName){
-  const vc=Math.floor(Date.now()/1000);
-  return `plugins { id 'com.android.application' }
-
-android {
-  namespace 'com.costas.generatedwrapper'
-  compileSdk 34
-
-  defaultConfig {
-    applicationId "${packageName}"
-    minSdk 29
-    targetSdk 34
-    versionCode ${vc}
-    versionName "1.0"
-  }
-
-  buildTypes {
-    debug { minifyEnabled false }
-    release { minifyEnabled false }
-  }
-}
-`;
-}
-
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-async function waitForRun(token,since){
-  for(let i=0;i<30;i++){
-    const d=await api(token,'/actions/workflows/'+WORKFLOW+'/runs?event=workflow_dispatch&branch='+BRANCH+'&per_page=10');
-    const runs=(d.workflow_runs||[]).filter(r=>new Date(r.created_at).getTime()>=since-15000);
-    if(runs.length){
-      runs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-      return runs[0];
-    }
-    status('Το build ξεκίνησε. Περιμένω να εμφανιστεί στο GitHub Actions…');
-    await sleep(3000);
+async function waitForRun(commitSha){
+  for(let i=0;i<36;i++){
+    const d=await apiPublic('/actions/workflows/'+WORKFLOW+'/runs?event=push&branch='+BRANCH+'&per_page=10');
+    const runs=(d.workflow_runs||[]).filter(r=>r.head_sha===commitSha);
+    if(runs.length)return runs[0];
+    status('✅ Το αίτημα στάλθηκε.\nΠεριμένω να ξεκινήσει το GitHub build…');
+    await sleep(10000);
   }
-  throw new Error('Δεν βρέθηκε το workflow run.');
+  throw new Error('Το build στάλθηκε, αλλά δεν μπόρεσα να δω την εκκίνησή του. Άνοιξε GitHub Actions.');
 }
 
-async function waitForCompletion(token,run){
-  for(let i=0;i<120;i++){
-    const r=await api(token,'/actions/runs/'+run.id);
-    status('Build APK: '+r.status+(r.status==='completed'?' / '+r.conclusion:'')+'\nΜην κλείσεις την εφαρμογή.');
+async function waitForCompletion(run){
+  for(let i=0;i<45;i++){
+    const r=await apiPublic('/actions/runs/'+run.id);
+    status('Χτίζω το APK…\nΚατάσταση: '+r.status+(r.status==='completed'?' / '+r.conclusion:'')+'\nΜην κλείσεις την εφαρμογή.');
     if(r.status==='completed'){
       if(r.conclusion==='success')return r;
-      throw new Error('Το build ολοκληρώθηκε με αποτέλεσμα: '+r.conclusion);
+      throw new Error('Το GitHub build τελείωσε με αποτέλεσμα: '+r.conclusion);
     }
-    await sleep(5000);
+    await sleep(10000);
   }
-  throw new Error('Το build άργησε υπερβολικά.');
+  throw new Error('Το build αργεί. Άνοιξε GitHub Actions για να δεις την πορεία.');
 }
 
-$('download').onclick=()=>openExternal(DOWNLOAD);
+$('download').onclick=()=>openExternal(DOWNLOAD+'?v='+Date.now());
+$('actions').onclick=()=>openExternal(ACTIONS_URL);
 
 $('build').onclick=async()=>{
   $('download').style.display='none';
+
   const token=$('token').value.trim()||nativeLoadToken();
   const appName=$('appName').value.trim();
   const packageName=$('packageName').value.trim();
   const html=$('htmlCode').value;
 
-  if(!token){status('Χρειάζεται GitHub token.','bad');return}
+  if(!token){status('Χρειάζεται το GitHub token που έχεις ήδη.','bad');return}
   if(!appName){status('Βάλε όνομα εφαρμογής.','bad');return}
   if(!validPackage(packageName)){status('Το package name δεν είναι σωστό. Παράδειγμα: com.costas.myapp','bad');return}
   if(!html.trim()){status('Δεν υπάρχει HTML.','bad');return}
 
   nativeSaveToken(token);
   $('build').disabled=true;
+
   try{
-    status('1/4 Ανεβάζω το HTML…');
-    await upsert(token,'generated-app/app/src/main/assets/index.html',html,'APK Maker: update HTML');
+    const now=Math.floor(Date.now()/1000);
+    const versionName=new Date().toISOString().slice(0,10).replace(/-/g,'.');
+    const request={
+      request_id:String(Date.now()),
+      app_name:appName,
+      package_name:packageName,
+      version_code:now,
+      version_name:versionName,
+      html_b64:b64utf8(html)
+    };
 
-    status('2/4 Ρυθμίζω package name…');
-    await upsert(token,'generated-app/app/build.gradle',buildGradle(packageName),'APK Maker: update application id');
+    status('1/3 Στέλνω το HTML στο GitHub…');
+    const saved=await upsertRequest(token,JSON.stringify(request,null,2));
+    const commitSha=saved&&saved.commit&&saved.commit.sha;
+    if(!commitSha)throw new Error('Δεν επέστρεψε commit SHA από το GitHub.');
 
-    status('3/4 Ρυθμίζω όνομα εφαρμογής…');
-    const strings='<resources>\n  <string name="app_name">'+xmlEscape(appName)+'</string>\n</resources>\n';
-    await upsert(token,'generated-app/app/src/main/res/values/strings.xml',strings,'APK Maker: update app name');
+    status('2/3 Το GitHub πήρε το αίτημα. Περιμένω το build…');
+    const run=await waitForRun(commitSha);
 
-    status('4/4 Ξεκινάω το Android build…');
-    const since=Date.now();
-    await api(token,'/actions/workflows/'+WORKFLOW+'/dispatches',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ref:BRANCH})
-    });
-
-    const run=await waitForRun(token,since);
-    await waitForCompletion(token,run);
+    status('3/3 Το APK χτίζεται…');
+    await waitForCompletion(run);
 
     status('✅ Το APK είναι έτοιμο.\nΠάτησε «ΚΑΤΕΒΑΣΕ ΤΟ APK».','good');
     $('download').style.display='block';
   }catch(e){
-    status('❌ '+e.message,'bad');
+    const msg=String(e&&e.message?e.message:e);
+    if(msg.includes('Resource not accessible by personal access token')){
+      status('❌ Το token δεν έχει δικαίωμα Contents: Read and write στο repository html-apps.\nΔεν χρειάζεται Actions: write στη νέα έκδοση.','bad');
+    }else{
+      status('❌ '+msg,'bad');
+    }
   }finally{
     $('build').disabled=false;
   }

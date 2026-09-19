@@ -1,0 +1,17 @@
+plugins { id 'com.android.application' }
+
+android {
+  namespace 'com.costas.eightiesaudiov3'
+  compileSdk 34
+  defaultConfig {
+    applicationId "com.costas.eightiesaudiov3"
+    minSdk 29
+    targetSdk 34
+    versionCode 3
+    versionName "3.0"
+  }
+  buildTypes {
+    debug { minifyEnabled false }
+    release { minifyEnabled false }
+  }
+}

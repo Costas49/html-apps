@@ -1,0 +1,105 @@
+name: Costas APK Builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: "Όνομα εφαρμογής"
+        required: true
+        default: "Costas Universal App"
+      package_name:
+        description: "Μοναδικό package, π.χ. com.costas.radio"
+        required: true
+        default: "com.costas.universalapp"
+      version_code:
+        description: "Ακέραιος: 1, 2, 3..."
+        required: true
+        default: "1"
+      version_name:
+        description: "Έκδοση: 1.0, 1.1..."
+        required: true
+        default: "1.0"
+      apk_name:
+        description: "Όνομα APK χωρίς .apk"
+        required: true
+        default: "Costas-Universal-App"
+
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "costas-apk-builder/**"
+      - ".github/workflows/costas-apk-builder.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_NAME: ${{ github.event.inputs.app_name || 'Costas Universal App' }}
+      APP_ID: ${{ github.event.inputs.package_name || 'com.costas.universalapp' }}
+      VERSION_CODE: ${{ github.event.inputs.version_code || '1' }}
+      VERSION_NAME: ${{ github.event.inputs.version_name || '1.0' }}
+      APK_NAME: ${{ github.event.inputs.apk_name || 'Costas-Universal-App' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK 34
+        shell: bash
+        run: |
+          SDKMANAGER="$(find /usr/local/lib/android/sdk/cmdline-tools -name sdkmanager -type f | head -1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Validate inputs
+        shell: bash
+        run: |
+          if ! [[ "$APP_ID" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+            echo "Invalid package name: $APP_ID"
+            exit 1
+          fi
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "Version code must be an integer."
+            exit 1
+          fi
+
+      - name: Build installable APK
+        shell: bash
+        run: |
+          gradle -p costas-apk-builder :app:assembleDebug \
+            -PapkApplicationId="$APP_ID" \
+            -PapkAppName="$APP_NAME" \
+            -PapkVersionCode="$VERSION_CODE" \
+            -PapkVersionName="$VERSION_NAME" \
+            --stacktrace
+
+      - name: Prepare final file
+        shell: bash
+        run: |
+          SAFE_NAME="$(printf '%s' "$APK_NAME" | tr -cs 'A-Za-z0-9._-' '-')"
+          SAFE_NAME="${SAFE_NAME%-}"
+          test -n "$SAFE_NAME" || SAFE_NAME="Costas-App"
+          mkdir -p output
+          cp costas-apk-builder/app/build/outputs/apk/debug/app-debug.apk "output/${SAFE_NAME}.apk"
+          echo "Final APK: output/${SAFE_NAME}.apk"
+
+      - name: Upload final APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Costas-APK-Output
+          path: output/*.apk
+          if-no-files-found: error
+          retention-days: 30

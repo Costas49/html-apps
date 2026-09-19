@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>80s YouTube Player</title>
+<style>
+:root{--bg:#060606;--panel:#171717;--orange:#ff9d00;--green:#22c18d;--muted:#aaa;--line:#303030}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#f7f7f7;font-family:Arial,sans-serif}
+body{min-height:100vh;padding:18px}.wrap{max-width:1500px;margin:auto}
+.top{display:flex;align-items:center;gap:16px}.logo{width:68px;height:68px;border-radius:18px;background:var(--orange);display:grid;place-items:center;color:#111;font-size:24px;font-weight:900}
+.title{flex:1}.title h1{margin:0;font-family:monospace;letter-spacing:2px}.title p{margin:7px 0 0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(370px,.75fr);gap:16px;margin-top:18px}
+.card{background:linear-gradient(180deg,#181818,#0e0e0e);border:1px solid #292929;border-radius:24px;padding:20px}
+.deckbar{display:flex;gap:14px;align-items:center}.deckname{flex:1;background:#24241f;border-radius:999px;padding:14px 20px;color:#ffd059;font-family:monospace}.active{color:var(--green)}
+.cassette{margin-top:18px;border:4px solid #48444b;border-radius:18px;background:#262329;padding:14px}.label{background:#f0dda2;color:#222;border-radius:5px;padding:13px 17px;display:flex;justify-content:space-between;font-family:Georgia,serif}
+h2{margin:0 0 12px}.row{display:flex;gap:10px}.row>*{flex:1}label{display:block;color:#c8c8c8;margin:10px 0 6px;font-size:14px}
+input,select{width:100%;background:#080808;border:1px solid #3a3a3a;color:#fff;border-radius:12px;padding:13px;font-size:16px}
+button{border:1px solid #644a10;background:#17130b;color:#ffb11b;border-radius:13px;padding:13px 15px;font-size:16px;font-weight:700}
+button.primary{background:var(--orange);color:#111;border:none}button.green{background:#12372d;color:#88ffdc;border-color:#215b4c}
+button:focus,input:focus,select:focus{outline:none;box-shadow:0 0 0 4px rgba(255,157,0,.8);border-color:var(--orange)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.previewWrap{margin-top:16px;display:flex;align-items:center;gap:16px;background:#0a0a0a;border:1px solid #292929;border-radius:18px;padding:14px}
+.preview{width:220px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;flex:0 0 auto}.preview iframe{width:100%;height:100%;border:0}
+.now{flex:1}.now strong{display:block;font-size:22px;margin-bottom:7px}.now span{color:#999}.status{margin-top:12px;color:#b0b0b0;background:#0a0a0a;border:1px solid #272727;border-radius:12px;padding:11px}
+.listbox{max-height:560px;overflow:auto}.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #242424}
+.item strong{display:block}.item small{display:block;color:#999;margin-top:3px;word-break:break-all}.itemBtns{display:flex;gap:6px}.mini{padding:8px 9px;font-size:13px}
+.hint{font-size:13px;color:#8d8d8d;line-height:1.45;margin-top:10px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.preview{width:180px}.title h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">80s</div>
+    <div class="title">
+      <h1>80S YOUTUBE PLAYER</h1>
+      <p>Μεγάλο audio-style περιβάλλον • μικρή επίσημη προεπισκόπηση YouTube • Αγαπημένα & λίστες</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <main>
+      <section class="card">
+        <div class="deckbar"><div class="deckname">⌁ HI-FI STEREO DECK<br>ANDROID TV</div><div>MODE:</div><div class="active">PLAY</div></div>
+        <div class="cassette"><div class="label"><span>NOW PLAYING</span><strong id="nowTitle">Έτοιμο</strong></div></div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>Video ID / YouTube URL</h2>
+
+        <label>Video ID</label>
+        <div class="row"><input id="videoId" placeholder="π.χ. dQw4w9WgXcQ"><button class="primary" onclick="playFromId()">▶ Play</button></div>
+
+        <label>YouTube URL</label>
+        <div class="row"><input id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..."><button class="primary" onclick="playFromUrl()">▶ Play URL</button></div>
+
+        <div class="actions">
+          <button onclick="extractToId()">Πάρε Video ID</button>
+          <button onclick="openYouTube()">Άνοιγμα YouTube</button>
+        </div>
+
+        <div class="previewWrap">
+          <div class="preview"><iframe id="ytframe" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+          <div class="now"><strong id="nowText">Δεν παίζει τίποτα</strong><span>Το βίντεο μένει μικρό. Η εφαρμογή λειτουργεί οπτικά σαν audio player.</span></div>
+        </div>
+        <div id="status" class="status">Βάλε Video ID ή YouTube URL.</div>
+        <div class="hint">Η αναπαραγωγή γίνεται μέσω του επίσημου embedded YouTube player. Δεν γίνεται εξαγωγή ή μετατροπή σε MP3.</div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>Αποθήκευση αγαπημένου</h2>
+        <div class="row">
+          <div><label>Τίτλος</label><input id="songTitle" placeholder="π.χ. Wham! - Freedom"></div>
+          <div><label>Λίστα</label><input id="listName" value="Αγαπημένα"></div>
+        </div>
+        <div class="actions">
+          <button class="green" onclick="saveCurrent()">♥ Αποθήκευση</button>
+          <button onclick="newList()">＋ Νέα λίστα</button>
+        </div>
+        <div class="hint">Αποθηκεύονται τίτλος, Video ID και YouTube URL τοπικά στη συσκευή.</div>
+      </section>
+    </main>
+
+    <aside class="card">
+      <h2>Αγαπημένα / Λίστες</h2>
+      <label>Λίστα</label>
+      <select id="listSelect" onchange="renderList()"></select>
+      <div class="actions">
+        <button onclick="renameList()">Μετονομασία</button>
+        <button onclick="deleteList()">Διαγραφή λίστας</button>
+      </div>
+      <div id="items" class="listbox"></div>
+      <div id="countStatus" class="status">0 τραγούδια</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const STORE='eighties_youtube_v4_lists';
+let lists=JSON.parse(localStorage.getItem(STORE)||'{}');
+if(!Object.keys(lists).length) lists={'Αγαπημένα':[]};
+
+function persist(){localStorage.setItem(STORE,JSON.stringify(lists))}
+function setStatus(t){document.getElementById('status').textContent=t}
+function extractId(input){
+  if(!input)return '';
+  const s=input.trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;
+  try{
+    const u=new URL(s);
+    if(u.hostname.includes('youtu.be'))return u.pathname.split('/').filter(Boolean)[0]||'';
+    if(u.pathname.startsWith('/shorts/'))return (u.pathname.split('/shorts/')[1]||'').split('/')[0];
+    if(u.pathname.startsWith('/embed/'))return (u.pathname.split('/embed/')[1]||'').split('/')[0];
+    return u.searchParams.get('v')||'';
+  }catch(e){
+    const m=s.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m?m[1]:'';
+  }
+}
+function playId(id){
+  if(!/^[A-Za-z0-9_-]{11}$/.test(id)){setStatus('Μη έγκυρο Video ID.');return}
+  videoId.value=id;
+  if(!youtubeUrl.value.trim())youtubeUrl.value='https://www.youtube.com/watch?v='+id;
+  const origin=encodeURIComponent('https://costas-player.local');
+  ytframe.src='https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&playsinline=1&rel=0&origin='+origin;
+  const title=songTitle.value.trim()||id;
+  nowTitle.textContent=title;nowText.textContent=title;
+  setStatus('Φορτώθηκε στο μικρό YouTube player.');
+}
+function playFromId(){playId(videoId.value.trim())}
+function playFromUrl(){const id=extractId(youtubeUrl.value);if(!id){setStatus('Δεν αναγνωρίστηκε ο σύνδεσμος.');return}videoId.value=id;playId(id)}
+function extractToId(){const id=extractId(youtubeUrl.value);if(!id){setStatus('Δεν βρέθηκε Video ID.');return}videoId.value=id;setStatus('Video ID: '+id)}
+function openYouTube(){let u=youtubeUrl.value.trim();const id=videoId.value.trim()||extractId(u);if(!u&&id)u='https://www.youtube.com/watch?v='+id;if(!u){setStatus('Βάλε πρώτα URL ή ID.');return}AndroidTV.openExternal(u)}
+function currentList(){return listSelect.value||'Αγαπημένα'}
+function saveCurrent(){
+  const id=videoId.value.trim()||extractId(youtubeUrl.value);
+  if(!id){setStatus('Χρειάζεται Video ID ή YouTube URL.');return}
+  const yt=youtubeUrl.value.trim()||('https://www.youtube.com/watch?v='+id);
+  const name=listName.value.trim()||currentList()||'Αγαπημένα';
+  if(!lists[name])lists[name]=[];
+  const title=songTitle.value.trim()||id;
+  lists[name].push({title,id,youtube:yt});
+  persist();refreshLists(name);renderList();setStatus('Αποθηκεύτηκε στη λίστα «'+name+'».');
+}
+function refreshLists(selectName){
+  const old=selectName||listSelect.value;listSelect.innerHTML='';
+  Object.keys(lists).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;listSelect.appendChild(o)});
+  if(lists[old])listSelect.value=old;
+}
+function renderList(){
+  const name=currentList(),arr=lists[name]||[];items.innerHTML='';
+  arr.forEach((x,i)=>{
+    const d=document.createElement('div');d.className='item';
+    const info=document.createElement('div');
+    info.innerHTML='<strong>'+esc(x.title)+'</strong><small>ID: '+esc(x.id)+'</small>';
+    const b=document.createElement('div');b.className='itemBtns';
+    const p=btn('▶',()=>{loadItem(x);playId(x.id)});
+    const y=btn('YT',()=>{loadItem(x);openYouTube()});
+    const del=btn('✕',()=>{lists[name].splice(i,1);persist();renderList()});
+    b.append(p,y,del);d.append(info,b);items.appendChild(d);
+  });
+  countStatus.textContent=arr.length+' τραγούδια';
+}
+function btn(t,fn){const b=document.createElement('button');b.className='mini';b.textContent=t;b.onclick=fn;return b}
+function loadItem(x){songTitle.value=x.title||'';videoId.value=x.id||'';youtubeUrl.value=x.youtube||'';nowTitle.textContent=x.title||x.id;nowText.textContent=x.title||x.id}
+function newList(){const n=prompt('Όνομα νέας λίστας:');if(!n||!n.trim())return;const x=n.trim();if(!lists[x])lists[x]=[];persist();refreshLists(x);renderList();listName.value=x}
+function renameList(){const old=currentList(),n=prompt('Νέο όνομα:',old);if(!n||!n.trim()||n.trim()===old)return;const nn=n.trim();lists[nn]=lists[old]||[];delete lists[old];persist();refreshLists(nn);renderList();listName.value=nn}
+function deleteList(){const name=currentList();if(Object.keys(lists).length===1){setStatus('Πρέπει να υπάρχει τουλάχιστον μία λίστα.');return}if(!confirm('Διαγραφή λίστας «'+name+'»;'))return;delete lists[name];persist();refreshLists();renderList()}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+refreshLists('Αγαπημένα');renderList();
+
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;
+  if(['INPUT','SELECT'].includes(tag)&&!['ArrowUp','ArrowDown'].includes(e.key))return;
+  const els=[...document.querySelectorAll('button,input,select')].filter(x=>!x.disabled&&x.offsetParent!==null);
+  if(!els.length)return;
+  let i=Math.max(0,els.indexOf(document.activeElement));
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();els[(i+1)%els.length].focus()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
+});
+</script>
+</body>
+</html>

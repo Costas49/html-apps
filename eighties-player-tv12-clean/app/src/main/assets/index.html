@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>80s Hits Player</title>
+<style>
+:root{--bg:#070707;--panel:#171717;--orange:#ff9d00;--green:#18b98b;--muted:#aaa;--line:#303030}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#f7f7f7;font-family:Arial,sans-serif}
+body{min-height:100vh;padding:18px}.wrap{max-width:1500px;margin:auto}.top{display:flex;align-items:center;gap:16px}.logo{width:64px;height:64px;border-radius:16px;background:var(--orange);color:#111;display:grid;place-items:center;font-size:30px;font-weight:900}.title{flex:1}.title h1{margin:0;font-family:monospace;letter-spacing:2px}.title p{margin:7px 0 0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:16px;margin-top:18px}.card{background:linear-gradient(180deg,#181818,#0f0f0f);border:1px solid #292929;border-radius:24px;padding:20px}
+.deck{padding:24px}.deckbar{display:flex;gap:14px;align-items:center}.deckname{flex:1;background:#24241f;border-radius:999px;padding:13px 18px;color:#ffd059;font-family:monospace}.active{color:var(--green)}.cassette{margin-top:18px;border:4px solid #48444b;border-radius:18px;background:#262329;padding:14px}.label{background:#f0dda2;color:#222;border-radius:5px;padding:12px 16px;display:flex;justify-content:space-between;font-family:Georgia,serif}
+h2{margin:0 0 12px}.row{display:flex;gap:10px}.row>*{flex:1}label{display:block;color:#c8c8c8;margin:10px 0 6px;font-size:14px}
+input,select,textarea{width:100%;background:#080808;border:1px solid #3a3a3a;color:#fff;border-radius:12px;padding:13px;font-size:16px}textarea{min-height:90px;resize:vertical}
+button{border:1px solid #62490f;background:#17130b;color:#ffb11b;border-radius:13px;padding:13px 15px;font-size:16px;font-weight:700}button.primary{background:var(--orange);color:#111;border:none}button.green{background:#12372d;color:#88ffdc;border-color:#215b4c}
+button:focus,input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 4px rgba(255,157,0,.8);border-color:var(--orange)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.player{margin-top:16px;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;border:1px solid #333}.player iframe{width:100%;height:100%;border:0}
+.listbox{max-height:460px;overflow:auto}.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #242424}.item strong{display:block}.item small{color:#999}.itemBtns{display:flex;gap:7px}.mini{padding:8px 10px;font-size:13px}.status{margin-top:12px;color:#a8a8a8;background:#0a0a0a;border:1px solid #272727;border-radius:12px;padding:11px}.hint{font-size:13px;color:#8d8d8d;line-height:1.45;margin-top:10px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.title h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">80s</div>
+    <div class="title"><h1>80S HITS PLAYER</h1><p>YouTube URL • Video ID • Αποθηκευμένες λίστες • χωρίς API / χωρίς AI</p></div>
+  </div>
+
+  <div class="grid">
+    <main>
+      <section class="card deck">
+        <div class="deckbar"><div class="deckname">⌁ HI-FI STEREO DECK<br>1980s</div><div>DOLBY B-NR:</div><div class="active">ACTIVE</div></div>
+        <div class="cassette"><div class="label"><span>CHROME C-90 &nbsp; SIDE A</span><strong id="nowTitle">Έτοιμο</strong></div></div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>1. Βάλε Video ID ή YouTube σύνδεσμο</h2>
+        <label>Video ID</label>
+        <div class="row"><input id="videoId" placeholder="π.χ. dQw4w9WgXcQ"><button class="primary" onclick="playById()">▶ Play ID</button></div>
+
+        <label>YouTube σύνδεσμος</label>
+        <div class="row"><input id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..."><button class="primary" onclick="playByUrl()">▶ Play URL</button></div>
+
+        <div class="actions">
+          <button onclick="copyExtractedId()">Πάρε Video ID από URL</button>
+          <button onclick="openYoutube()">Άνοιγμα στο YouTube</button>
+        </div>
+
+        <div class="player" id="playerWrap">
+          <iframe id="ytframe" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        </div>
+        <div id="status" class="status">Περιμένω Video ID ή YouTube URL.</div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>2. Αποθήκευση σε λίστα</h2>
+        <div class="row">
+          <div><label>Τίτλος τραγουδιού</label><input id="songTitle" placeholder="π.χ. Wham! - Freedom"></div>
+          <div><label>Όνομα λίστας</label><input id="listName" value="Αγαπημένα"></div>
+        </div>
+        <div class="actions">
+          <button class="green" onclick="saveCurrent()">＋ Αποθήκευση στη λίστα</button>
+          <button onclick="newList()">Νέα λίστα</button>
+        </div>
+        <div class="hint">Οι λίστες αποθηκεύονται τοπικά στη συσκευή και μένουν μετά το κλείσιμο της εφαρμογής.</div>
+      </section>
+    </main>
+
+    <aside class="card">
+      <h2>Αποθηκευμένες λίστες</h2>
+      <label>Επιλογή λίστας</label>
+      <select id="listSelect" onchange="renderList()"></select>
+      <div class="actions">
+        <button onclick="renameList()">Μετονομασία</button>
+        <button onclick="deleteList()">Διαγραφή λίστας</button>
+      </div>
+      <div id="items" class="listbox"></div>
+      <div class="status" id="countStatus">0 τραγούδια</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const STORE='eighties_player_lists_v2';
+let lists=JSON.parse(localStorage.getItem(STORE)||'{}');
+if(!Object.keys(lists).length) lists={'Αγαπημένα':[]};
+
+function persist(){localStorage.setItem(STORE,JSON.stringify(lists))}
+function setStatus(t){document.getElementById('status').textContent=t}
+function extractId(input){
+  if(!input) return '';
+  const s=input.trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+  try{
+    const u=new URL(s);
+    if(u.hostname.includes('youtu.be')) return u.pathname.split('/').filter(Boolean)[0]||'';
+    if(u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1].split('/')[0];
+    if(u.pathname.startsWith('/embed/')) return u.pathname.split('/embed/')[1].split('/')[0];
+    return u.searchParams.get('v')||'';
+  }catch(e){
+    const m=s.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m?m[1]:'';
+  }
+}
+function playId(id){
+  if(!id){setStatus('Δεν βρέθηκε έγκυρο Video ID.');return}
+  videoId.value=id;
+  const url='https://www.youtube.com/embed/'+encodeURIComponent(id)+'?autoplay=1&rel=0';
+  ytframe.src=url;
+  nowTitle.textContent=songTitle.value.trim()||id;
+  setStatus('Παίζει Video ID: '+id);
+}
+function playById(){playId(videoId.value.trim())}
+function playByUrl(){
+  const url=youtubeUrl.value.trim();
+  const id=extractId(url);
+  if(!id){setStatus('Ο σύνδεσμος YouTube δεν αναγνωρίστηκε.');return}
+  videoId.value=id;
+  playId(id);
+}
+function copyExtractedId(){
+  const id=extractId(youtubeUrl.value.trim());
+  if(!id){setStatus('Δεν βρήκα Video ID στον σύνδεσμο.');return}
+  videoId.value=id;
+  setStatus('Video ID: '+id);
+}
+function openYoutube(){
+  let url=youtubeUrl.value.trim();
+  const id=videoId.value.trim()||extractId(url);
+  if(!url && id) url='https://www.youtube.com/watch?v='+id;
+  if(!url){setStatus('Βάλε πρώτα Video ID ή YouTube URL.');return}
+  if(window.AndroidTV&&AndroidTV.openExternal) AndroidTV.openExternal(url); else window.open(url,'_blank');
+}
+function currentList(){return listSelect.value||'Αγαπημένα'}
+function saveCurrent(){
+  const id=videoId.value.trim()||extractId(youtubeUrl.value.trim());
+  if(!id){setStatus('Χρειάζεται Video ID ή YouTube URL πριν την αποθήκευση.');return}
+  const name=(listName.value.trim()||currentList()||'Αγαπημένα');
+  if(!lists[name]) lists[name]=[];
+  const url=youtubeUrl.value.trim()||('https://www.youtube.com/watch?v='+id);
+  const title=songTitle.value.trim()||id;
+  lists[name].push({title,id,url});
+  persist(); refreshLists(name); renderList(); setStatus('Αποθηκεύτηκε στη λίστα «'+name+'».');
+}
+function refreshLists(selectName){
+  const sel=listSelect; const old=selectName||sel.value;
+  sel.innerHTML='';
+  Object.keys(lists).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o)});
+  if(lists[old]) sel.value=old;
+}
+function renderList(){
+  const name=currentList(), arr=lists[name]||[], box=items; box.innerHTML='';
+  arr.forEach((x,i)=>{
+    const d=document.createElement('div');d.className='item';
+    const info=document.createElement('div');
+    info.innerHTML='<strong>'+escapeHtml(x.title)+'</strong><small>'+escapeHtml(x.id)+'</small>';
+    const b=document.createElement('div');b.className='itemBtns';
+    const p=document.createElement('button');p.className='mini primary';p.textContent='▶';p.onclick=()=>{videoId.value=x.id;youtubeUrl.value=x.url;songTitle.value=x.title;playId(x.id)};
+    const o=document.createElement('button');o.className='mini';o.textContent='YouTube';o.onclick=()=>{youtubeUrl.value=x.url;openYoutube()};
+    const del=document.createElement('button');del.className='mini';del.textContent='✕';del.onclick=()=>{lists[name].splice(i,1);persist();renderList()};
+    b.append(p,o,del);d.append(info,b);box.appendChild(d);
+  });
+  countStatus.textContent=arr.length+' τραγούδια';
+}
+function newList(){
+  const n=prompt('Όνομα νέας λίστας:');
+  if(!n||!n.trim())return;
+  const name=n.trim(); if(!lists[name]) lists[name]=[]; persist();refreshLists(name);renderList();listName.value=name;
+}
+function renameList(){
+  const old=currentList();const n=prompt('Νέο όνομα λίστας:',old);
+  if(!n||!n.trim()||n.trim()===old)return;
+  const nn=n.trim(); lists[nn]=lists[old]||[]; delete lists[old]; persist();refreshLists(nn);renderList();listName.value=nn;
+}
+function deleteList(){
+  const name=currentList();
+  if(Object.keys(lists).length===1){setStatus('Πρέπει να υπάρχει τουλάχιστον μία λίστα.');return}
+  if(!confirm('Διαγραφή λίστας «'+name+'»;'))return;
+  delete lists[name];persist();refreshLists();renderList();
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+refreshLists('Αγαπημένα');renderList();
+
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;
+  if(['INPUT','TEXTAREA','SELECT'].includes(tag) && !['ArrowUp','ArrowDown'].includes(e.key)) return;
+  const els=[...document.querySelectorAll('button,input,select,textarea')].filter(x=>!x.disabled&&x.offsetParent!==null);
+  if(!els.length)return;
+  let i=Math.max(0,els.indexOf(document.activeElement));
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();els[(i+1)%els.length].focus()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
+});
+</script>
+</body>
+</html>

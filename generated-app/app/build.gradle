@@ -1,0 +1,19 @@
+plugins { id 'com.android.application' }
+
+android {
+  namespace 'com.costas.generatedwrapper'
+  compileSdk 34
+
+  defaultConfig {
+    applicationId "com.costas.generatedapp"
+    minSdk 29
+    targetSdk 34
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    debug { minifyEnabled false }
+    release { minifyEnabled false }
+  }
+}

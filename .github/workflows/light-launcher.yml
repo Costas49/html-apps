@@ -1,0 +1,49 @@
+name: Build Nova Lite Launcher APK
+
+on:
+  push:
+    paths:
+      - "light-launcher/**"
+      - ".github/workflows/light-launcher.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Gradle 8.9
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt/gradle
+
+      - name: Build installable APK
+        working-directory: light-launcher
+        run: /opt/gradle/gradle-8.9/bin/gradle assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: cp light-launcher/app/build/outputs/apk/debug/app-debug.apk Nova-Lite-Launcher-Android10.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nova-Lite-Launcher-Android10
+          path: Nova-Lite-Launcher-Android10.apk
+          retention-days: 30

@@ -23,13 +23,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK 35
-        shell: bash
-        run: |
-          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Gradle 8.9
         run: |
@@ -38,8 +38,6 @@ jobs:
 
       - name: Build installable APK
         working-directory: light-launcher
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: /opt/gradle/gradle-8.9/bin/gradle assembleDebug --no-daemon
 
       - name: Rename APK

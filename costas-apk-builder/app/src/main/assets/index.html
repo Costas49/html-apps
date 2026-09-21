@@ -3,626 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#090b14">
-<title>PhotoMotion AI</title>
+<meta name="theme-color" content="#090d18">
+<title>PhotoMotion AI 2</title>
 <style>
-:root{
-  --bg:#070a12;--panel:#101522;--panel2:#151b2b;--line:#2b3550;
-  --text:#f4f6ff;--muted:#aab1c6;--accent:#8ea0ff;--accent2:#b9c3ff;
-  --good:#85e6aa;--danger:#ff8f9b;--shadow:0 18px 50px rgba(0,0,0,.35)
-}
+:root{--bg:#090d18;--panel:#12192a;--line:#2e3a59;--text:#f5f7ff;--muted:#aab3c9;--accent:#8498ff;--accent2:#b68dff;--ok:#91e7b1;--bad:#ff9dab}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0,#151a34 0,#090c16 35%,#060810 100%);color:var(--text);font-family:Roboto,Arial,sans-serif}
-body{min-height:100vh}
-button,input,textarea,select{font:inherit}
-button{cursor:pointer}
-.app{display:grid;grid-template-columns:92px 1fr;min-height:100vh}
-.rail{position:sticky;top:0;height:100vh;background:rgba(9,12,22,.94);border-right:1px solid #222a40;padding:24px 14px;display:flex;flex-direction:column;align-items:center;gap:16px}
-.logo{width:58px;height:58px;border-radius:19px;background:linear-gradient(145deg,#6f82ff,#b49cff);display:grid;place-items:center;font-size:26px;font-weight:900;box-shadow:0 10px 28px rgba(111,130,255,.32)}
-.stepDot{width:54px;height:54px;border-radius:18px;border:1px solid #2d3650;background:#111625;color:#bac2d9;display:grid;place-items:center;font-weight:800}
-.stepDot.active{background:#26305a;color:white;border-color:#778aff;box-shadow:0 0 0 3px rgba(119,138,255,.12)}
-main{padding:28px 34px 40px;max-width:1320px;width:100%;margin:auto}
-.topbar{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px}
-h1{font-size:34px;margin:0 0 8px;letter-spacing:-.5px}
-.subtitle{color:var(--muted);font-size:17px;line-height:1.5;max-width:850px}
-.badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.badge{padding:8px 12px;border-radius:999px;background:#151b2c;border:1px solid #2c3652;color:#cbd2e8;font-size:13px}
-.badge.good{color:#9aefb9;border-color:#315d45}
-.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:22px}
-.card{background:linear-gradient(180deg,rgba(20,26,43,.98),rgba(12,16,28,.98));border:1px solid var(--line);border-radius:28px;padding:22px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 16px;font-size:22px}
-.card h3{margin:18px 0 10px;font-size:16px;color:#dfe4f7}
-.drop{position:relative;border:2px dashed #445071;border-radius:24px;min-height:180px;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;background:#0d1220;overflow:hidden}
-.drop.hasImage{padding:0;border-style:solid}
-.drop img{display:block;width:100%;height:240px;object-fit:cover}
-.dropText strong{display:block;font-size:22px;margin-bottom:8px}
-.dropText span{color:var(--muted)}
-.hidden{display:none!important}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.btn{border:1px solid #4b5b91;background:#1d274a;color:#eef1ff;border-radius:16px;padding:13px 18px;font-weight:800;min-height:48px}
-.btn.primary{background:linear-gradient(135deg,#7185ff,#9e8cff);border-color:transparent;color:#fff}
-.btn.secondary{background:#12182a}
-.btn.danger{background:#331a22;border-color:#61303d;color:#ffbec6}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-textarea{width:100%;min-height:130px;resize:vertical;border:1px solid #3a4568;border-radius:18px;background:#0b1020;color:#f5f6ff;padding:15px;outline:none}
-textarea:focus,select:focus,input:focus{border-color:#8395ff;box-shadow:0 0 0 3px rgba(131,149,255,.14)}
-.presets{display:flex;flex-wrap:wrap;gap:8px}
-.preset{border:1px solid #36415f;background:#101729;color:#c6cce0;padding:10px 13px;border-radius:999px}
-.preset.active{background:#29355f;color:white;border-color:#7185ff}
-.rangeRow{display:grid;grid-template-columns:1fr 86px;gap:12px;align-items:center}
-input[type=range]{width:100%}
-.readout{background:#0a0f1c;border:1px solid #303a58;border-radius:12px;text-align:center;padding:9px}
-.setting{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin:11px 0}
-.setting label{color:var(--muted)}
-select{width:100%;background:#0b1020;color:white;border:1px solid #394462;border-radius:12px;padding:11px}
-.previewWrap{position:relative;background:black;border-radius:22px;overflow:hidden;aspect-ratio:16/9;border:1px solid #30394f}
-canvas{width:100%;height:100%;display:block;background:#020306}
-.previewLabel{position:absolute;left:14px;top:14px;background:rgba(5,8,15,.68);backdrop-filter:blur(8px);padding:7px 10px;border-radius:10px;font-size:12px;color:#dce2f9}
-.timeline{height:72px;margin-top:14px;background:#0c1120;border:1px solid #2b3450;border-radius:16px;display:flex;align-items:center;padding:10px;gap:8px}
-.clip{height:48px;border-radius:12px;background:linear-gradient(135deg,#26355d,#3f4e80);flex:1;min-width:40px}
-.clip:nth-child(2){background:linear-gradient(135deg,#253a53,#305c7c)}
-.clip:nth-child(3){background:linear-gradient(135deg,#40335d,#604e80)}
-.musicBox{border:1px solid #303a58;border-radius:18px;padding:15px;background:#0b1020}
-.musicName{font-weight:800;word-break:break-word}
-.small{font-size:13px;color:var(--muted);line-height:1.45}
-.notice{margin-top:14px;padding:12px 14px;border-radius:14px;background:#171d30;border:1px solid #2e3857;color:#c9d0e5;font-size:13px;line-height:1.5}
-.notice strong{color:white}
-.exportCard{margin-top:22px}
-.progressOuter{height:12px;background:#0a0f1b;border:1px solid #2d3855;border-radius:999px;overflow:hidden;margin:12px 0}
-.progressInner{height:100%;width:0;background:linear-gradient(90deg,#6e83ff,#b48fff);transition:width .2s linear}
-.status{min-height:24px;color:#cdd4e9}
-.footer{color:#747d96;text-align:center;font-size:12px;padding-top:24px}
-@media(max-width:900px){
-  .app{grid-template-columns:1fr}.rail{display:none}main{padding:18px}.grid{grid-template-columns:1fr}
-  .topbar{flex-direction:column}.badges{justify-content:flex-start}.setting{grid-template-columns:1fr}
-}
+html,body{margin:0;background:linear-gradient(180deg,#151d34,#090d18 34%,#070a12);color:var(--text);font-family:Arial,sans-serif;min-height:100%}
+body{padding:14px}
+.wrap{max-width:1180px;margin:auto}
+h1{margin:0 0 6px;font-size:30px}.sub{color:var(--muted);font-size:15px;line-height:1.45;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:linear-gradient(180deg,#151d31,#0e1422);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 12px 26px rgba(0,0,0,.28)}
+.card h2{font-size:21px;margin:0 0 13px}.label{font-weight:700;margin:14px 0 8px;display:block}
+input[type=file],select,textarea{width:100%;background:#0a1020;color:#fff;border:1px solid #3a486c;border-radius:14px;padding:12px;font-size:15px}
+input[type=file]{min-height:52px}
+textarea{min-height:105px;resize:vertical}
+input[type=range]{width:100%}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:none;border-radius:14px;min-height:48px;padding:12px 17px;font-size:15px;font-weight:800;color:white;background:#28375d}.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2))}.btn.alt{background:#151d31;border:1px solid #344361}.btn.danger{background:#4a2230}.btn:disabled{opacity:.45}
+.preview{background:#000;border:1px solid #2c3855;border-radius:18px;overflow:hidden;height:340px}.preview canvas{display:block;width:100%;height:100%}
+.drop{margin-top:12px;border:1px solid #2d3957;border-radius:16px;background:#0b1020;padding:10px;color:#cbd4ec;font-size:13px;line-height:1.45}
+.two{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center}.readout{background:#0a1020;border:1px solid #33415f;border-radius:12px;text-align:center;padding:10px}
+.status{min-height:22px;margin-top:10px;color:#cbd3e8}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}.progress{height:12px;background:#090e19;border:1px solid #2e3958;border-radius:999px;overflow:hidden;margin-top:9px}.progress div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.small{font-size:12px;color:var(--muted);line-height:1.45}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.preview{height:280px}}
 </style>
 </head>
 <body>
-<div class="app">
-  <aside class="rail">
-    <div class="logo">✦</div>
-    <div class="stepDot active">1</div>
-    <div class="stepDot">2</div>
-    <div class="stepDot">3</div>
-    <div class="stepDot">4</div>
-  </aside>
+<div class="wrap">
+  <h1>PhotoMotion AI 2</h1>
+  <div class="sub">Διορθωμένη έκδοση για Android 10: η φωτογραφία φορτώνεται με το κανονικό Android file picker και διαβάζεται με FileReader, χωρίς blob URL.</div>
 
-  <main>
-    <div class="topbar">
-      <div>
-        <h1>PhotoMotion AI</h1>
-        <div class="subtitle">Κάνε μια φωτογραφία βίντεο με prompt, κίνηση κάμερας, διάρκεια έως 5 λεπτά και μουσική — τοπικά στο Android 10 tablet.</div>
-      </div>
-      <div class="badges">
-        <span class="badge good">Χωρίς API key</span>
-        <span class="badge">Android 10+</span>
-        <span class="badge">έως 05:00</span>
-      </div>
-    </div>
+  <div class="grid">
+    <section class="card">
+      <h2>1. Φωτογραφία</h2>
+      <span class="label">Πάτησε ακριβώς εδώ για επιλογή φωτογραφίας</span>
+      <input id="imageInput" type="file" accept="image/*">
+      <div class="drop" id="imageInfo">Δεν έχει επιλεγεί φωτογραφία.</div>
 
-    <section class="grid">
-      <div class="card">
-        <h2>1. Φωτογραφία & κίνηση</h2>
+      <span class="label">Prompt / εντολή</span>
+      <textarea id="prompt" placeholder="π.χ. δυνατό zoom μέσα, κίνηση δεξιά, κινηματογραφικό, αργό"></textarea>
 
-        <input id="imageInput" class="hidden" type="file" accept="image/*">
-        <div id="drop" class="drop">
-          <div id="dropText" class="dropText">
-            <strong>＋ Πρόσθεσε φωτογραφία</strong>
-            <span>JPG / PNG / WEBP από Gallery ή Files</span>
-          </div>
-          <img id="photoPreview" class="hidden" alt="">
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="chooseImage">Επιλογή φωτογραφίας</button>
-          <button class="btn secondary" id="clearImage" disabled>Καθαρισμός</button>
-        </div>
+      <span class="label">Κίνηση</span>
+      <select id="effect">
+        <option value="cinematic">Κινηματογραφικό zoom</option>
+        <option value="pan-right">Pan δεξιά</option>
+        <option value="pan-left">Pan αριστερά</option>
+        <option value="float">Απαλή πλεύση</option>
+        <option value="pulse">Αναπνοή / pulse</option>
+        <option value="dynamic">Δυναμικό</option>
+      </select>
 
-        <h3>Prompt / εντολή</h3>
-        <textarea id="prompt" placeholder="π.χ. Αργό κινηματογραφικό zoom προς τα μέσα, μικρή κίνηση δεξιά και απαλή αναπνοή της εικόνας."></textarea>
+      <span class="label">Διάρκεια</span>
+      <div class="two"><input id="duration" type="range" min="5" max="300" value="12"><div id="durationOut" class="readout">00:12</div></div>
 
-        <h3>Στυλ κίνησης</h3>
-        <div class="presets" id="presets">
-          <button class="preset active" data-effect="cinematic">Κινηματογραφικό</button>
-          <button class="preset" data-effect="soft">Απαλό</button>
-          <button class="preset" data-effect="dynamic">Δυναμικό</button>
-          <button class="preset" data-effect="pan">Pan</button>
-          <button class="preset" data-effect="breathe">Αναπνοή</button>
-        </div>
+      <span class="label">Ένταση κίνησης</span>
+      <div class="two"><input id="strength" type="range" min="10" max="100" value="70"><div id="strengthOut" class="readout">70%</div></div>
 
-        <h3>Διάρκεια</h3>
-        <div class="rangeRow">
-          <input id="duration" type="range" min="5" max="300" step="1" value="15">
-          <div id="durationText" class="readout">00:15</div>
-        </div>
+      <span class="label">Ανάλυση</span>
+      <select id="quality"><option value="540">540p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select>
 
-        <div class="setting">
-          <label for="quality">Ποιότητα εξαγωγής</label>
-          <select id="quality">
-            <option value="540">540p — ελαφρύ</option>
-            <option value="720" selected>720p — προτεινόμενο</option>
-            <option value="1080">1080p — βαρύτερο</option>
-          </select>
-        </div>
-
-        <div class="notice">
-          <strong>Τι κάνει αυτή η έκδοση:</strong> το prompt ελέγχει zoom, pan, κλίση και «αναπνοή» της φωτογραφίας. Δεν δημιουργεί νέα πραγματική κίνηση προσώπου ή σώματος· αυτό απαιτεί εξωτερικό generative AI μοντέλο.
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>2. Preview</h2>
-        <div class="previewWrap">
-          <canvas id="canvas" width="1280" height="720"></canvas>
-          <div class="previewLabel" id="previewLabel">Χωρίς φωτογραφία</div>
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="previewBtn" disabled>▶ Preview</button>
-          <button class="btn secondary" id="stopPreviewBtn" disabled>■ Stop</button>
-        </div>
-
-        <div class="timeline">
-          <div class="clip"></div><div class="clip"></div><div class="clip"></div>
-        </div>
-
-        <h3>3. Μουσική</h3>
-        <input id="audioInput" class="hidden" type="file" accept="audio/*">
-        <div class="musicBox">
-          <div id="musicName" class="musicName">Δεν έχει επιλεγεί μουσική</div>
-          <div id="musicMeta" class="small">MP3 / AAC / M4A / WAV, ανάλογα με τους codecs του WebView.</div>
-          <div class="actions">
-            <button class="btn secondary" id="chooseAudio">♫ Επιλογή μουσικής</button>
-            <button class="btn secondary" id="clearAudio" disabled>Αφαίρεση</button>
-          </div>
-        </div>
-      </div>
+      <span class="label">Μουσική (προαιρετικά)</span>
+      <input id="audioInput" type="file" accept="audio/*">
+      <div class="drop" id="audioInfo">Δεν έχει επιλεγεί μουσική.</div>
     </section>
 
-    <section class="card exportCard">
-      <h2>4. Εξαγωγή βίντεο</h2>
-      <div class="small">Το MP4 χρησιμοποιείται όταν το Android WebView το υποστηρίζει. Διαφορετικά η εφαρμογή εξάγει WebM. Η εξαγωγή γίνεται σε πραγματικό χρόνο: βίντεο 5 λεπτών χρειάζεται περίπου 5 λεπτά.</div>
-      <div class="actions">
-        <button class="btn primary" id="exportBtn" disabled>Εξαγωγή βίντεο</button>
-        <button class="btn danger hidden" id="cancelExportBtn">Ακύρωση</button>
-      </div>
-      <div class="progressOuter"><div class="progressInner" id="progressBar"></div></div>
-      <div class="status" id="status">Έτοιμο.</div>
-    </section>
+    <section class="card">
+      <h2>2. Κίνηση & βίντεο</h2>
+      <div class="preview"><canvas id="canvas" width="1280" height="720"></canvas></div>
 
-    <div class="footer">PhotoMotion AI Local • Project για Android 10 tablet</div>
-  </main>
+      <div class="row" style="margin-top:12px">
+        <button id="startBtn" class="btn primary" disabled>▶ Έναρξη κίνησης</button>
+        <button id="stopBtn" class="btn alt" disabled>■ Παύση</button>
+        <button id="clearBtn" class="btn alt" disabled>Καθαρισμός</button>
+      </div>
+
+      <div class="drop">
+        <strong>Έλεγχος:</strong> μόλις επιλέξεις φωτογραφία, το preview πρέπει να αρχίσει να κινείται αυτόματα. Αν δεν αρχίσει, θα εμφανιστεί μήνυμα σφάλματος εδώ κάτω.
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="exportBtn" class="btn primary" disabled>Εξαγωγή βίντεο</button>
+        <button id="cancelBtn" class="btn danger" style="display:none">Ακύρωση</button>
+      </div>
+      <div class="progress"><div id="bar"></div></div>
+      <div id="status" class="status">Έτοιμο. Διάλεξε φωτογραφία.</div>
+      <div class="small">Το αρχείο αποθηκεύεται στο Downloads/PhotoMotionAI. Αν το WebView δεν υποστηρίζει MP4, γίνεται WebM.</div>
+    </section>
+  </div>
 </div>
 
 <script>
 (function(){
-  const imageInput = document.getElementById('imageInput');
-  const audioInput = document.getElementById('audioInput');
-  const chooseImage = document.getElementById('chooseImage');
-  const clearImage = document.getElementById('clearImage');
-  const chooseAudio = document.getElementById('chooseAudio');
-  const clearAudio = document.getElementById('clearAudio');
-  const photoPreview = document.getElementById('photoPreview');
-  const drop = document.getElementById('drop');
-  const dropText = document.getElementById('dropText');
-  const prompt = document.getElementById('prompt');
-  const duration = document.getElementById('duration');
-  const durationText = document.getElementById('durationText');
-  const quality = document.getElementById('quality');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d', {alpha:false});
-  const previewLabel = document.getElementById('previewLabel');
-  const previewBtn = document.getElementById('previewBtn');
-  const stopPreviewBtn = document.getElementById('stopPreviewBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const cancelExportBtn = document.getElementById('cancelExportBtn');
-  const progressBar = document.getElementById('progressBar');
-  const status = document.getElementById('status');
-  const musicName = document.getElementById('musicName');
-  const musicMeta = document.getElementById('musicMeta');
-  const presetButtons = Array.from(document.querySelectorAll('.preset'));
+  function $(id){return document.getElementById(id)}
+  var imageInput=$('imageInput'),audioInput=$('audioInput'),prompt=$('prompt'),effect=$('effect'),duration=$('duration'),durationOut=$('durationOut'),strength=$('strength'),strengthOut=$('strengthOut'),quality=$('quality'),canvas=$('canvas'),ctx=canvas.getContext('2d'),startBtn=$('startBtn'),stopBtn=$('stopBtn'),clearBtn=$('clearBtn'),exportBtn=$('exportBtn'),cancelBtn=$('cancelBtn'),bar=$('bar'),status=$('status'),imageInfo=$('imageInfo'),audioInfo=$('audioInfo');
+  var img=null,imageFile=null,audioFile=null,running=false,raf=0,startTime=0,exporting=false,cancelExport=false,recorder=null,audioContext=null,audioSource=null;
 
-  let imageFile = null;
-  let imageUrl = null;
-  let img = null;
-  let audioFile = null;
-  let effect = 'cinematic';
-  let previewRaf = 0;
-  let previewStart = 0;
-  let exporting = false;
-  let cancelRequested = false;
-  let activeRecorder = null;
-  let audioContext = null;
-  let audioSource = null;
-
-  function pad(n){ return String(n).padStart(2,'0'); }
-  function fmt(sec){
-    sec = Math.max(0, Math.round(Number(sec)||0));
-    return pad(Math.floor(sec/60)) + ':' + pad(sec%60);
-  }
-  function setStatus(text, good){
-    status.textContent = text;
-    status.style.color = good ? '#8fe6ad' : '#cdd4e9';
-  }
-  function updateButtons(){
-    const ready = !!img;
-    previewBtn.disabled = !ready || exporting;
-    exportBtn.disabled = !ready || exporting;
-    clearImage.disabled = !ready || exporting;
-    chooseImage.disabled = exporting;
-    chooseAudio.disabled = exporting;
-    clearAudio.disabled = !audioFile || exporting;
-    stopPreviewBtn.disabled = !previewRaf || exporting;
-  }
-
-  function parseEffect(){
-    const t = (prompt.value || '').toLowerCase();
-    if(/zoom out|απομακρ|μακριά/.test(t)) return 'zoomout';
-    if(/δεξιά|right/.test(t)) return 'right';
-    if(/αριστερά|left/.test(t)) return 'left';
-    if(/πάνω|upward|up\b/.test(t)) return 'up';
-    if(/κάτω|downward|down\b/.test(t)) return 'down';
-    if(/αναπνο|breath|pulse/.test(t)) return 'breathe';
-    if(/δυναμ|dynamic|έντον/.test(t)) return 'dynamic';
-    if(/pan|πανοραμ/.test(t)) return 'pan';
-    if(/απαλ|soft|ήρεμ/.test(t)) return 'soft';
-    if(/zoom|ζουμ|κοντά|cinematic|κινηματογραφ/.test(t)) return 'cinematic';
-    return effect;
-  }
-
-  function motionAt(t, total){
-    const p = total > 0 ? Math.min(1, Math.max(0, t/total)) : 0;
-    const mode = parseEffect();
-    let scale = 1.04, dx = 0, dy = 0, rot = 0;
-
-    if(mode === 'cinematic'){
-      scale = 1.03 + 0.14*p;
-      dx = Math.sin(p*Math.PI)*canvas.width*0.018;
-      dy = -Math.sin(p*Math.PI*0.7)*canvas.height*0.012;
-    }else if(mode === 'zoomout'){
-      scale = 1.18 - 0.14*p;
-    }else if(mode === 'soft'){
-      scale = 1.045 + 0.018*Math.sin(t*0.75);
-      dx = Math.sin(t*0.28)*canvas.width*0.006;
-      dy = Math.cos(t*0.24)*canvas.height*0.006;
-    }else if(mode === 'dynamic'){
-      scale = 1.06 + 0.07*Math.sin(t*0.9);
-      dx = Math.sin(t*0.65)*canvas.width*0.025;
-      dy = Math.cos(t*0.52)*canvas.height*0.018;
-      rot = Math.sin(t*0.42)*0.012;
-    }else if(mode === 'pan'){
-      scale = 1.13;
-      dx = (p*2-1)*canvas.width*0.07;
-    }else if(mode === 'right'){
-      scale = 1.11;
-      dx = (p*2-1)*canvas.width*0.08;
-    }else if(mode === 'left'){
-      scale = 1.11;
-      dx = (1-p*2)*canvas.width*0.08;
-    }else if(mode === 'up'){
-      scale = 1.11;
-      dy = (1-p*2)*canvas.height*0.06;
-    }else if(mode === 'down'){
-      scale = 1.11;
-      dy = (p*2-1)*canvas.height*0.06;
-    }else if(mode === 'breathe'){
-      scale = 1.055 + 0.025*Math.sin(t*1.15);
-      dy = Math.sin(t*0.55)*canvas.height*0.006;
-    }
-    return {scale:scale,dx:dx,dy:dy,rot:rot};
-  }
-
-  function drawFrame(t, total){
-    ctx.fillStyle = '#020306';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    if(!img) return;
-
-    const cover = Math.max(canvas.width/img.naturalWidth, canvas.height/img.naturalHeight);
-    const m = motionAt(t,total);
-    const s = cover*m.scale;
-    const w = img.naturalWidth*s;
-    const h = img.naturalHeight*s;
-
-    ctx.save();
-    ctx.translate(canvas.width/2 + m.dx, canvas.height/2 + m.dy);
-    ctx.rotate(m.rot);
-    ctx.drawImage(img,-w/2,-h/2,w,h);
-    ctx.restore();
-
-    const g = ctx.createRadialGradient(canvas.width/2,canvas.height/2,canvas.height*.18,canvas.width/2,canvas.height/2,canvas.width*.72);
-    g.addColorStop(0,'rgba(0,0,0,0)');
-    g.addColorStop(1,'rgba(0,0,0,.30)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  }
-
-  function setCanvasSize(){
-    const q = Number(quality.value);
-    if(q===1080){ canvas.width=1920; canvas.height=1080; }
-    else if(q===720){ canvas.width=1280; canvas.height=720; }
-    else { canvas.width=960; canvas.height=540; }
-    drawFrame(0,Number(duration.value));
-  }
-
-  function stopPreview(){
-    if(previewRaf){ cancelAnimationFrame(previewRaf); previewRaf=0; }
-    stopPreviewBtn.disabled = true;
-  }
-
-  function startPreview(){
-    if(!img || exporting) return;
-    stopPreview();
-    previewStart = performance.now();
-    const total = Number(duration.value);
-    const loop = function(now){
-      const t = ((now-previewStart)/1000) % Math.max(1,total);
-      drawFrame(t,total);
-      previewLabel.textContent = 'Preview • ' + fmt(t) + ' / ' + fmt(total);
-      previewRaf = requestAnimationFrame(loop);
-      stopPreviewBtn.disabled = false;
-    };
-    previewRaf = requestAnimationFrame(loop);
-  }
-
-  async function loadImage(file){
-    if(imageUrl) URL.revokeObjectURL(imageUrl);
-    imageUrl = URL.createObjectURL(file);
-    const el = new Image();
-    await new Promise(function(resolve,reject){
-      el.onload=resolve; el.onerror=reject; el.src=imageUrl;
-    });
-    img = el;
-    imageFile = file;
-    photoPreview.src = imageUrl;
-    photoPreview.classList.remove('hidden');
-    dropText.classList.add('hidden');
-    drop.classList.add('hasImage');
-    previewLabel.textContent = file.name;
-    drawFrame(0,Number(duration.value));
-    updateButtons();
-  }
-
-  function clearCurrentImage(){
-    stopPreview();
-    img=null; imageFile=null;
-    if(imageUrl){ URL.revokeObjectURL(imageUrl); imageUrl=null; }
-    imageInput.value='';
-    photoPreview.src='';
-    photoPreview.classList.add('hidden');
-    dropText.classList.remove('hidden');
-    drop.classList.remove('hasImage');
-    previewLabel.textContent='Χωρίς φωτογραφία';
-    ctx.fillStyle='#020306';ctx.fillRect(0,0,canvas.width,canvas.height);
-    updateButtons();
-  }
-
-  chooseImage.onclick = function(){ imageInput.click(); };
-  clearImage.onclick = clearCurrentImage;
-  imageInput.onchange = async function(){
-    const f=imageInput.files && imageInput.files[0];
-    if(!f) return;
-    try{ await loadImage(f); setStatus('Η φωτογραφία φορτώθηκε.',true); }
-    catch(e){ setStatus('Δεν μπόρεσε να φορτωθεί η φωτογραφία.'); }
-  };
-
-  chooseAudio.onclick = function(){ audioInput.click(); };
-  clearAudio.onclick = function(){
-    audioFile=null; audioInput.value='';
-    musicName.textContent='Δεν έχει επιλεγεί μουσική';
-    musicMeta.textContent='MP3 / AAC / M4A / WAV, ανάλογα με τους codecs του WebView.';
-    updateButtons();
-  };
-  audioInput.onchange = function(){
-    const f=audioInput.files && audioInput.files[0];
-    if(!f) return;
-    audioFile=f;
-    musicName.textContent=f.name;
-    musicMeta.textContent=(f.type||'audio')+' • '+(f.size/1024/1024).toFixed(1)+' MB';
-    updateButtons();
-  };
-
-  presetButtons.forEach(function(btn){
-    btn.onclick=function(){
-      presetButtons.forEach(function(b){b.classList.remove('active');});
-      btn.classList.add('active');
-      effect=btn.dataset.effect;
-      drawFrame(0,Number(duration.value));
-    };
-  });
-
-  duration.oninput=function(){ durationText.textContent=fmt(duration.value); };
-  quality.onchange=setCanvasSize;
-  previewBtn.onclick=startPreview;
-  stopPreviewBtn.onclick=function(){ stopPreview(); drawFrame(0,Number(duration.value)); previewLabel.textContent=imageFile?imageFile.name:'Χωρίς φωτογραφία'; };
-
-  function bestMime(){
-    const tries=[
-      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-      'video/mp4',
-      'video/webm;codecs=vp8,opus',
-      'video/webm;codecs=vp8',
-      'video/webm'
-    ];
-    if(!window.MediaRecorder) return '';
-    for(let i=0;i<tries.length;i++){
-      try{ if(MediaRecorder.isTypeSupported(tries[i])) return tries[i]; }catch(e){}
-    }
-    return '';
-  }
-
-  function bytesToBase64(bytes){
-    let binary='';
-    const step=0x6000;
-    for(let i=0;i<bytes.length;i+=step){
-      binary += String.fromCharCode.apply(null, bytes.subarray(i,Math.min(bytes.length,i+step)));
-    }
-    return btoa(binary);
-  }
-
-  async function sendBlobToAndroid(blob){
-    const buf = new Uint8Array(await blob.arrayBuffer());
-    const part = 96*1024;
-    for(let i=0;i<buf.length;i+=part){
-      const sub=buf.subarray(i,Math.min(buf.length,i+part));
-      if(window.AndroidTV && AndroidTV.appendBase64Chunk){
-        const ok=AndroidTV.appendBase64Chunk(bytesToBase64(sub));
-        if(ok===false) throw new Error('write failed');
-      }
-    }
-  }
-
-  async function prepareAudio(){
-    if(!audioFile) return {track:null,source:null,ctx:null};
-    const AC=window.AudioContext||window.webkitAudioContext;
-    if(!AC) throw new Error('Web Audio δεν υποστηρίζεται');
-    const ac=new AC();
-    await ac.resume();
-    const data=await audioFile.arrayBuffer();
-    const buffer=await ac.decodeAudioData(data.slice(0));
-    const source=ac.createBufferSource();
-    source.buffer=buffer;
-    source.loop=true;
-    const dest=ac.createMediaStreamDestination();
-    source.connect(dest);
-    source.start(0);
-    return {track:dest.stream.getAudioTracks()[0]||null,source:source,ctx:ac};
-  }
-
-  async function exportVideo(){
-    if(!img || exporting) return;
-    if(!canvas.captureStream || !window.MediaRecorder){
-      setStatus('Το Android WebView δεν υποστηρίζει τοπική εγγραφή βίντεο. Ενημέρωσε το Android System WebView.');
-      return;
-    }
-
-    stopPreview();
-    exporting=true;
-    cancelRequested=false;
-    updateButtons();
-    cancelExportBtn.classList.remove('hidden');
-    progressBar.style.width='0%';
-
-    const total=Number(duration.value);
-    const mime=bestMime();
-    if(!mime){
-      setStatus('Δεν βρέθηκε υποστηριζόμενος video codec στο WebView.');
-      exporting=false; cancelExportBtn.classList.add('hidden'); updateButtons(); return;
-    }
-
-    const ext=mime.indexOf('mp4')>=0?'mp4':'webm';
-    const filename='PhotoMotion_'+Date.now()+'.'+ext;
-    setStatus('Προετοιμασία εξαγωγής '+ext.toUpperCase()+'...');
-
-    let localChunks=[];
-    let writeQueue=Promise.resolve();
-
-    try{
-      const fps=30;
-      const videoStream=canvas.captureStream(fps);
-      const audio=await prepareAudio();
-      audioContext=audio.ctx; audioSource=audio.source;
-
-      const tracks=videoStream.getVideoTracks().slice();
-      if(audio.track) tracks.push(audio.track);
-      const mixed=new MediaStream(tracks);
-
-      if(window.AndroidTV && AndroidTV.beginFile){
-        const ok=AndroidTV.beginFile(filename,mime);
-        if(ok===false) throw new Error('Δεν άνοιξε το αρχείο εξόδου.');
-      }
-
-      const q=Number(quality.value);
-      const bitrate=q===1080?5500000:(q===720?2800000:1600000);
-      let rec;
-      try{
-        rec=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:bitrate,audioBitsPerSecond:128000});
-      }catch(e){
-        rec=new MediaRecorder(mixed,{mimeType:mime});
-      }
-      activeRecorder=rec;
-
-      rec.ondataavailable=function(ev){
-        if(!ev.data || !ev.data.size) return;
-        if(window.AndroidTV && AndroidTV.appendBase64Chunk){
-          writeQueue=writeQueue.then(function(){return sendBlobToAndroid(ev.data);});
-        }else{
-          localChunks.push(ev.data);
-        }
-      };
-
-      rec.onerror=function(){
-        cancelRequested=true;
-        setStatus('Σφάλμα MediaRecorder.');
-      };
-
-      const done=new Promise(function(resolve,reject){
-        rec.onstop=async function(){
-          try{
-            await writeQueue;
-            if(window.AndroidTV && AndroidTV.finishFile){
-              AndroidTV.finishFile();
-            }else if(localChunks.length){
-              const b=new Blob(localChunks,{type:mime});
-              const u=URL.createObjectURL(b);
-              const a=document.createElement('a');
-              a.href=u;a.download=filename;a.click();
-              setTimeout(function(){URL.revokeObjectURL(u);},5000);
-            }
-            resolve();
-          }catch(e){ reject(e); }
-        };
-      });
-
-      rec.start(1000);
-      const start=performance.now();
-
-      await new Promise(function(resolve){
-        const render=function(now){
-          const elapsed=(now-start)/1000;
-          const t=Math.min(total,elapsed);
-          drawFrame(t,total);
-          const pct=Math.min(100,(t/total)*100);
-          progressBar.style.width=pct.toFixed(1)+'%';
-          previewLabel.textContent='Export • '+fmt(t)+' / '+fmt(total);
-          setStatus('Εξαγωγή '+pct.toFixed(0)+'% • μην κλείσεις την εφαρμογή.');
-          if(cancelRequested || elapsed>=total){ resolve(); return; }
-          requestAnimationFrame(render);
-        };
-        requestAnimationFrame(render);
-      });
-
-      try{ if(audioSource) audioSource.stop(); }catch(e){}
-      try{ videoStream.getTracks().forEach(function(t){t.stop();}); }catch(e){}
-      if(rec.state!=='inactive') rec.stop();
-      await done;
-
-      progressBar.style.width=cancelRequested?'0%':'100%';
-      setStatus(cancelRequested?'Η εξαγωγή ακυρώθηκε.':'Έτοιμο: '+filename+' αποθηκεύτηκε στον φάκελο Downloads/PhotoMotionAI.',!cancelRequested);
-    }catch(e){
-      try{ if(window.AndroidTV && AndroidTV.cancelFile) AndroidTV.cancelFile(); }catch(_){}
-      setStatus('Αποτυχία εξαγωγής: '+(e && e.message?e.message:String(e)));
-    }finally{
-      try{ if(audioSource) audioSource.stop(); }catch(e){}
-      try{ if(audioContext) audioContext.close(); }catch(e){}
-      audioSource=null;audioContext=null;activeRecorder=null;
-      exporting=false;
-      cancelRequested=false;
-      cancelExportBtn.classList.add('hidden');
-      previewLabel.textContent=imageFile?imageFile.name:'Χωρίς φωτογραφία';
-      updateButtons();
-    }
-  }
-
-  exportBtn.onclick=exportVideo;
-  cancelExportBtn.onclick=function(){
-    if(!exporting) return;
-    cancelRequested=true;
-    setStatus('Ακύρωση...');
-    try{ if(activeRecorder && activeRecorder.state!=='inactive') activeRecorder.stop(); }catch(e){}
-    try{ if(window.AndroidTV && AndroidTV.cancelFile) AndroidTV.cancelFile(); }catch(e){}
-  };
-
-  setCanvasSize();
-  updateButtons();
+  function pad(n){return String(n).padStart(2,'0')}
+  function fmt(v){v=Math.round(Number(v)||0);return pad(Math.floor(v/60))+':'+pad(v%60)}
+  function setStatus(t,cls){status.textContent=t;status.className='status'+(cls?' '+cls:'')}
+  function updateUI(){durationOut.textContent=fmt(duration.value);strengthOut.textContent=strength.value+'%';var has=!!img;startBtn.disabled=!has||exporting;stopBtn.disabled=!running||exporting;clearBtn.disabled=!has||exporting;exportBtn.disabled=!has||exporting;imageInput.disabled=exporting;audioInput.disabled=exporting}
+  function setCanvas(){var q=Number(quality.value);if(q===1080){canvas.width=1920;canvas.height=1080}else if(q===720){canvas.width=1280;canvas.height=720}else{canvas.width=960;canvas.height=540}if(img)draw(0,Number(duration.value))}
+  function effectFromPrompt(){var t=(prompt.value||'').toLowerCase();if(/δεξιά|right/.test(t))return'pan-right';if(/αριστερά|left/.test(t))return'pan-left';if(/pulse|αναπνο|breath/.test(t))return'pulse';if(/δυναμ|dynamic|έντον/.test(t))return'dynamic';if(/απαλ|soft|float|πλεύ/.test(t))return'float';if(/zoom|κινηματογραφ|cinema/.test(t))return'cinematic';return effect.value}
+  function motion(t,total){var p=Math.min(1,Math.max(0,t/Math.max(total,.01))),m=effectFromPrompt(),s=Number(strength.value)/100,scale=1.1,dx=0,dy=0,rot=0;if(m==='cinematic'){scale=1.05+.38*s*p;dx=Math.sin(p*Math.PI)*canvas.width*.04*s;dy=-Math.sin(p*Math.PI*.8)*canvas.height*.03*s;rot=Math.sin(p*Math.PI*.7)*.018*s}else if(m==='pan-right'){scale=1.18;dx=(-1+2*p)*canvas.width*.15*s}else if(m==='pan-left'){scale=1.18;dx=(1-2*p)*canvas.width*.15*s}else if(m==='float'){scale=1.12+Math.sin(t*.9)*.035*s;dx=Math.sin(t*.55)*canvas.width*.035*s;dy=Math.cos(t*.45)*canvas.height*.03*s;rot=Math.sin(t*.35)*.012*s}else if(m==='pulse'){scale=1.12+Math.sin(t*1.3)*.07*s;dy=Math.sin(t*.8)*canvas.height*.015*s}else if(m==='dynamic'){scale=1.1+Math.sin(t*1.2)*.07*s;dx=Math.sin(t*.95)*canvas.width*.055*s;dy=Math.cos(t*.8)*canvas.height*.045*s;rot=Math.sin(t*.7)*.03*s}return{scale:scale,dx:dx,dy:dy,rot:rot}}
+  function draw(t,total){ctx.fillStyle='#020306';ctx.fillRect(0,0,canvas.width,canvas.height);if(!img)return;var cover=Math.max(canvas.width/img.naturalWidth,canvas.height/img.naturalHeight),mm=motion(t,total),w=img.naturalWidth*cover*mm.scale,h=img.naturalHeight*cover*mm.scale;ctx.save();ctx.translate(canvas.width/2+mm.dx,canvas.height/2+mm.dy);ctx.rotate(mm.rot);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();var g=ctx.createLinearGradient(0,0,0,canvas.height);g.addColorStop(0,'rgba(0,0,0,.02)');g.addColorStop(1,'rgba(0,0,0,.28)');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height)}
+  function stopAnim(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;updateUI()}
+  function animate(now){if(!running)return;if(!startTime)startTime=now;var total=Number(duration.value),t=((now-startTime)/1000)%Math.max(total,.1);draw(t,total);raf=requestAnimationFrame(animate)}
+  function startAnim(){if(!img||exporting)return;stopAnim();running=true;startTime=0;raf=requestAnimationFrame(animate);updateUI();setStatus('Η κίνηση τρέχει.', 'ok')}
+  function loadImageFile(file){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onerror=function(){reject(new Error('FileReader απέτυχε'))};reader.onload=function(){var im=new Image();im.onerror=function(){reject(new Error('Η εικόνα δεν αποκωδικοποιήθηκε'))};im.onload=function(){img=im;imageFile=file;imageInfo.textContent='Φωτογραφία: '+file.name+' • '+Math.round(file.size/1024)+' KB • '+im.naturalWidth+'×'+im.naturalHeight;draw(0,Number(duration.value));updateUI();setStatus('Η φωτογραφία φορτώθηκε σωστά.', 'ok');setTimeout(startAnim,120);resolve()};im.src=reader.result};reader.readAsDataURL(file)})}
+  function clearImage(){stopAnim();img=null;imageFile=null;imageInput.value='';imageInfo.textContent='Δεν έχει επιλεγεί φωτογραφία.';ctx.fillStyle='#020306';ctx.fillRect(0,0,canvas.width,canvas.height);setStatus('Καθαρίστηκε.');updateUI()}
+  function bestMime(){if(!window.MediaRecorder)return'';var a=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'];for(var i=0;i<a.length;i++){try{if(MediaRecorder.isTypeSupported(a[i]))return a[i]}catch(e){}}return''}
+  function toB64(bytes){var out='',step=24576;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(bytes.length,i+step)));return btoa(out)}
+  function sendBlob(blob){return blob.arrayBuffer().then(function(ab){var buf=new Uint8Array(ab),p=Promise.resolve();for(var i=0;i<buf.length;i+=98304){(function(sub){p=p.then(function(){if(window.AndroidTV&&AndroidTV.appendBase64Chunk){var ok=AndroidTV.appendBase64Chunk(toB64(sub));if(ok===false)throw new Error('Αποτυχία αποθήκευσης')}})})(buf.subarray(i,Math.min(buf.length,i+98304)))}return p})}
+  function prepareAudio(){if(!audioFile)return Promise.resolve({track:null});var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return Promise.resolve({track:null});audioContext=new AC();return audioContext.resume().then(function(){return audioFile.arrayBuffer()}).then(function(ab){return audioContext.decodeAudioData(ab.slice(0))}).then(function(buf){audioSource=audioContext.createBufferSource();audioSource.buffer=buf;audioSource.loop=true;var dest=audioContext.createMediaStreamDestination();audioSource.connect(dest);audioSource.start(0);return{track:dest.stream.getAudioTracks()[0]||null}})}
+  async function exportVideo(){if(!img||exporting)return;if(!canvas.captureStream||!window.MediaRecorder){setStatus('Το Android System WebView δεν υποστηρίζει εξαγωγή βίντεο.','bad');return}stopAnim();exporting=true;cancelExport=false;cancelBtn.style.display='inline-block';bar.style.width='0%';updateUI();var mime=bestMime();if(!mime){setStatus('Δεν βρέθηκε video codec.','bad');exporting=false;cancelBtn.style.display='none';updateUI();return}var ext=mime.indexOf('mp4')>=0?'mp4':'webm',filename='PhotoMotion_'+Date.now()+'.'+ext;try{if(window.AndroidTV&&AndroidTV.beginFile){var ok=AndroidTV.beginFile(filename,mime);if(ok===false)throw new Error('Δεν άνοιξε το αρχείο εξόδου')}var total=Number(duration.value),stream=canvas.captureStream(30),aud=await prepareAudio(),tracks=stream.getVideoTracks().slice();if(aud.track)tracks.push(aud.track);var mixed=new MediaStream(tracks),chunks=[],chain=Promise.resolve();recorder=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:Number(quality.value)===1080?5500000:Number(quality.value)===720?2800000:1600000,audioBitsPerSecond:128000});recorder.ondataavailable=function(ev){if(!ev.data||!ev.data.size)return;if(window.AndroidTV&&AndroidTV.appendBase64Chunk)chain=chain.then(function(){return sendBlob(ev.data)});else chunks.push(ev.data)};var done=new Promise(function(resolve,reject){recorder.onerror=function(){reject(new Error('MediaRecorder failed'))};recorder.onstop=function(){chain.then(function(){if(window.AndroidTV&&AndroidTV.finishFile)AndroidTV.finishFile();else if(chunks.length){var blob=new Blob(chunks,{type:mime}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=filename;a.click();setTimeout(function(){URL.revokeObjectURL(u)},4000)}resolve()}).catch(reject)}});recorder.start(1000);var t0=performance.now();await new Promise(function(resolve){function render(now){var sec=Math.min(total,(now-t0)/1000),pct=Math.min(100,sec/total*100);draw(sec,total);bar.style.width=pct.toFixed(1)+'%';setStatus('Εξαγωγή '+pct.toFixed(0)+'%...');if(cancelExport||sec>=total){resolve();return}requestAnimationFrame(render)}requestAnimationFrame(render)});if(audioSource)try{audioSource.stop()}catch(e){};stream.getTracks().forEach(function(t){try{t.stop()}catch(e){}});if(recorder&&recorder.state!=='inactive')recorder.stop();await done;if(cancelExport){if(window.AndroidTV&&AndroidTV.cancelFile)AndroidTV.cancelFile();setStatus('Η εξαγωγή ακυρώθηκε.','bad')}else setStatus('Το βίντεο αποθηκεύτηκε στα Downloads/PhotoMotionAI.','ok')}catch(e){try{if(window.AndroidTV&&AndroidTV.cancelFile)AndroidTV.cancelFile()}catch(x){}setStatus('Σφάλμα εξαγωγής: '+(e.message||e),'bad')}finally{try{if(audioSource)audioSource.stop()}catch(e){};try{if(audioContext)audioContext.close()}catch(e){};audioSource=null;audioContext=null;recorder=null;exporting=false;cancelExport=false;cancelBtn.style.display='none';updateUI()}}
+  imageInput.addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;setStatus('Φορτώνω τη φωτογραφία...');loadImageFile(f).catch(function(e){setStatus('Δεν φορτώθηκε: '+e.message,'bad')})});
+  audioInput.addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;audioFile=f;audioInfo.textContent='Μουσική: '+f.name+' • '+(f.size/1024/1024).toFixed(1)+' MB';setStatus('Η μουσική φορτώθηκε.','ok')});
+  duration.oninput=updateUI;strength.oninput=updateUI;quality.onchange=setCanvas;effect.onchange=function(){if(running){stopAnim();startAnim()}else if(img)draw(0,Number(duration.value))};prompt.oninput=function(){if(img&&!running)draw(0,Number(duration.value))};startBtn.onclick=startAnim;stopBtn.onclick=function(){stopAnim();if(img)draw(0,Number(duration.value));setStatus('Η κίνηση σταμάτησε.')};clearBtn.onclick=clearImage;exportBtn.onclick=exportVideo;cancelBtn.onclick=function(){cancelExport=true;setStatus('Ακύρωση...');try{if(recorder&&recorder.state!=='inactive')recorder.stop()}catch(e){}};
+  updateUI();setCanvas();
 })();
 </script>
 </body>

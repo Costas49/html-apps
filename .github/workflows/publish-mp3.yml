@@ -1,0 +1,34 @@
+name: Publish MP3 Direct Link
+
+on:
+  push:
+    paths:
+      - ".github/workflows/publish-mp3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download prepared audiobook
+        run: |
+          curl -fL 'https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-a18c-820a-8711-67fcb93b4c37/raw?se=2026-09-22T10%3A28%3A44Z&sp=r&sv=2026-02-06&sr=b&scid=8a329fe4-111b-5c4b-9976-85e005c00f5d&skoid=d4d17077-8f33-42a9-bd8b-aa9d5eaf5320&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-22T06%3A13%3A30Z&ske=2026-09-23T06%3A13%3A30Z&sks=b&skv=2026-02-06&sig=8Eg21c0W7hagkPs4QCDRHRKHWiZ5ZYwWGXuIT%2BfOo7w%3D' -o audiobook.zip
+          unzip -o audiobook.zip -d extracted
+          mkdir -p audio
+          MP3="$(find extracted -type f -name '*.mp3' | head -n 1)"
+          test -n "$MP3"
+          cp "$MP3" audio/istoria_g_dimotikou_antriki_neural.mp3
+          test $(stat -c%s audio/istoria_g_dimotikou_antriki_neural.mp3) -gt 1000000
+
+      - name: Commit MP3
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audio/istoria_g_dimotikou_antriki_neural.mp3
+          git commit -m "Publish direct Greek neural audiobook MP3"
+          git push

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Γλωσσικό AI Lab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#eef2ff;font-family:Arial,sans-serif}
+header{padding:14px 16px;background:#111827;border-bottom:1px solid #263047;position:sticky;top:0;z-index:5}
+h1{margin:0;font-size:21px}.sub{color:#b8c2dc;font-size:13px;margin-top:5px}
+nav{display:flex;gap:7px;overflow:auto;padding:9px;background:#0e1528;position:sticky;top:65px;z-index:4}
+button{border:0;border-radius:10px;padding:11px 13px;background:#253455;color:#fff;font-weight:700}
+button.active,.primary{background:#315be8}.panel{display:none}.panel.active{display:block}
+main{max-width:1050px;margin:auto;padding:12px}.card{background:#121a2d;border:1px solid #263047;border-radius:14px;padding:13px;margin-bottom:12px}
+label{display:block;font-weight:700;margin:7px 0 6px}textarea,input,select{width:100%;padding:11px;background:#0b1020;color:#fff;border:1px solid #35415d;border-radius:10px;font-size:16px}
+textarea{min-height:145px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.muted{color:#aab5cf;font-size:13px}.bad{color:#ff9797}.ok{color:#7be4ad}
+.issue{padding:10px;border:1px solid #384562;border-radius:10px;margin:8px 0;background:#0d1426}.tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#293858;font-size:12px;margin-right:6px}
+.videoWrap{position:relative}#player{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}.subs{position:absolute;left:4%;right:4%;bottom:6%;text-align:center;pointer-events:none;text-shadow:0 2px 4px #000}
+.orig,.gr{display:inline-block;background:rgba(0,0,0,.72);padding:4px 8px;border-radius:6px;font-size:18px;margin:2px}.gr{background:rgba(35,80,185,.82)}
+.status{padding:9px;border-radius:9px;background:#0d1426;margin-top:8px}pre{white-space:pre-wrap;word-break:break-word}
+@media(max-width:700px){.row{grid-template-columns:1fr}nav{top:65px}}
+</style>
+</head>
+<body>
+<header><h1>Γλωσσικό Εργαστήριο AI</h1><div class="sub">Ορθογραφία • στίξη • γραμματική • συντακτικό • κλίσεις • ανάλυση λέξεων • YouTube</div></header>
+<nav>
+<button class="tab active" data-tab="editor">Διόρθωση</button>
+<button class="tab" data-tab="words">Λέξεις</button>
+<button class="tab" data-tab="verbs">Ρήματα</button>
+<button class="tab" data-tab="video">YouTube</button>
+<button class="tab" data-tab="api">API</button>
+</nav>
+<main>
+<section id="editor" class="panel active">
+<div class="card"><label>Κείμενο</label><textarea id="textInput" spellcheck="true" lang="el" placeholder="Γράψε ή επικόλλησε κείμενο..."></textarea>
+<div class="actions"><button id="localCheck" class="primary">Τοπικός έλεγχος</button><button id="aiCheck">Πλήρης έλεγχος AI</button><button id="applyCorrection">Χρήση διορθωμένου</button></div>
+<div class="muted">Ο τοπικός έλεγχος λειτουργεί χωρίς API. Η πλήρης γλωσσική ανάλυση χρησιμοποιεί το AI που θα επιλέξεις.</div></div>
+<div class="card"><h3>Ευρήματα</h3><div id="issues"></div><h3>Διορθωμένο κείμενο</h3><textarea id="corrected" readonly></textarea></div>
+</section>
+<section id="words" class="panel">
+<div class="card"><label>Λέξη ή πρόταση</label><textarea id="wordInput" placeholder="π.χ. Τα παιδιά έπαιζαν χαρούμενα στην αυλή."></textarea>
+<div class="actions"><button id="analyzeWords" class="primary">Γραμματική / συντακτική ανάλυση</button><button id="lettersBtn">Φωνήεντα / σύμφωνα</button></div></div>
+<div class="card"><div id="wordResults"></div></div>
+</section>
+<section id="verbs" class="panel">
+<div class="card"><label>Ρήμα</label><input id="verbInput" placeholder="π.χ. γράφω">
+<div class="row"><div><label>Χρόνος</label><select id="tense"><option>Ενεστώτας</option><option>Παρατατικός</option><option>Αόριστος</option><option>Εξακολουθητικός μέλλοντας</option><option>Συνοπτικός μέλλοντας</option><option>Παρακείμενος</option><option>Υπερσυντέλικος</option></select></div>
+<div><label>Φωνή</label><select id="voice"><option>Ενεργητική</option><option>Παθητική</option></select></div></div>
+<div class="actions"><button id="conjugate" class="primary">Κλίση ρήματος</button></div></div>
+<div class="card"><div id="verbResults"></div></div>
+</section>
+<section id="video" class="panel">
+<div class="card"><label>YouTube URL</label><input id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..."><div class="actions"><button id="loadVideo" class="primary">Φόρτωση βίντεο</button></div></div>
+<div class="card"><div class="videoWrap"><div id="player"></div><div class="subs"><div><span id="subOrig" class="orig"></span></div><div><span id="subGr" class="gr"></span></div></div></div></div>
+<div class="card"><label>Υπότιτλοι SRT ή VTT</label><input type="file" id="subFile" accept=".srt,.vtt,text/vtt">
+<div class="actions"><button id="translateSubs">Μετάφραση στα ελληνικά με AI</button><button id="clearSubs">Καθαρισμός</button></div>
+<div id="subStatus" class="status">Δεν έχουν φορτωθεί υπότιτλοι.</div>
+<div class="muted">Το βίντεο παίζει μέσα στην εφαρμογή και εμφανίζονται δύο γραμμές: αρχική γλώσσα + ελληνικά. Για αυθαίρετο YouTube βίντεο απαιτείται διαθέσιμο transcript/SRT/VTT ή υπηρεσία speech-to-text.</div></div>
+</section>
+<section id="api" class="panel">
+<div class="card"><h3>AI σύνδεση</h3>
+<label>Πάροχος</label><select id="provider"><option value="openai">OpenAI / OpenAI-compatible</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic Claude</option><option value="custom">Custom OpenAI-compatible</option></select>
+<div class="row"><div><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="Επικόλλησε API key"></div><div><label>Model</label><input id="model" placeholder="μοντέλο"></div></div>
+<label>Endpoint</label><input id="endpoint" placeholder="API endpoint">
+<div class="actions"><button id="saveApi" class="primary">Αποθήκευση</button><button id="testApi">Δοκιμή</button><button id="forgetApi">Διαγραφή κλειδιού</button></div>
+<div id="apiStatus" class="status">Δεν έχει γίνει δοκιμή.</div>
+<div class="muted">Υποστηρίζονται έτοιμα OpenAI, Gemini, Claude και οποιοδήποτε OpenAI-compatible endpoint. Άλλος πάροχος χρειάζεται τον αντίστοιχο τρόπο αιτήματος.</div></div>
+</section>
+</main>
+<script>
+var $=function(id){return document.getElementById(id)},player=null,cues=[],translatedCues=[],syncTimer=null;
+document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active')});b.classList.add('active');$(b.dataset.tab).classList.add('active')}});
+
+function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+$('localCheck').onclick=function(){var t=$('textInput').value,a=[];if(/\s{2,}/.test(t))a.push(['Μορφοποίηση','Υπάρχουν πολλαπλά κενά.']);if(/\s+[,.!?;:]/.test(t))a.push(['Στίξη','Υπάρχει κενό πριν από σημείο στίξης.']);if(/[,.!?;:][^\s\n"»)]/.test(t))a.push(['Στίξη','Πιθανόν λείπει κενό μετά από σημείο στίξης.']);if(t.trim()&&!/[.!?…»"]$/.test(t.trim()))a.push(['Στίξη','Πιθανόν λείπει τελικό σημείο στίξης.']);$('issues').innerHTML=a.length?a.map(function(x){return '<div class="issue"><b>'+esc(x[0])+'</b><br>'+esc(x[1])+'</div>'}).join(''):'<div class="ok">Δεν βρέθηκαν βασικά προβλήματα στίξης/μορφοποίησης.</div>';$('corrected').value=t.replace(/\s+([,.!?;:])/g,'$1').replace(/([,.!?;:])([^\s\n"»)])/g,'$1 $2').replace(/[ \t]{2,}/g,' ')};
+
+function loadSettings(){$('provider').value=localStorage.getItem('gl_provider')||'openai';$('apiKey').value=localStorage.getItem('gl_key')||'';$('model').value=localStorage.getItem('gl_model')||'gpt-5-mini';$('endpoint').value=localStorage.getItem('gl_endpoint')||'https://api.openai.com/v1/chat/completions'}loadSettings();
+$('saveApi').onclick=function(){localStorage.setItem('gl_provider',$('provider').value);localStorage.setItem('gl_key',$('apiKey').value.trim());localStorage.setItem('gl_model',$('model').value.trim());localStorage.setItem('gl_endpoint',$('endpoint').value.trim());$('apiStatus').textContent='Οι ρυθμίσεις αποθηκεύτηκαν.'};
+$('forgetApi').onclick=function(){localStorage.removeItem('gl_key');$('apiKey').value='';$('apiStatus').textContent='Το κλειδί διαγράφηκε.'};
+$('provider').onchange=function(){if(this.value==='openai'){$('endpoint').value='https://api.openai.com/v1/chat/completions';$('model').value='gpt-5-mini'}if(this.value==='gemini'){$('endpoint').value='';$('model').value='gemini-2.5-flash'}if(this.value==='anthropic'){$('endpoint').value='https://api.anthropic.com/v1/messages';$('model').value='claude-sonnet-4-5'}};
+
+async function callAI(prompt,system){system=system||'Είσαι άριστος γλωσσολόγος και φιλόλογος της Νέας Ελληνικής. Απαντάς με ακρίβεια και σαφήνεια.';var provider=$('provider').value,key=$('apiKey').value.trim(),model=$('model').value.trim(),endpoint=$('endpoint').value.trim(),r,d;if(!key)throw new Error('Λείπει API key.');
+if(provider==='gemini'){var url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(key);r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}]})});d=await r.json();if(!r.ok)throw new Error(d&&d.error?d.error.message:'Σφάλμα Gemini');return d.candidates&&d.candidates[0]?d.candidates[0].content.parts.map(function(p){return p.text||''}).join(''):''}
+if(provider==='anthropic'){r=await fetch(endpoint||'https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:model,max_tokens:3000,system:system,messages:[{role:'user',content:prompt}]})});d=await r.json();if(!r.ok)throw new Error(d&&d.error?d.error.message:'Σφάλμα Claude');return d.content?d.content.map(function(x){return x.text||''}).join(''):''}
+r=await fetch(endpoint||'https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:model,messages:[{role:'system',content:system},{role:'user',content:prompt}],temperature:0.15})});d=await r.json();if(!r.ok)throw new Error(d&&d.error?d.error.message:'Σφάλμα API');return d.choices&&d.choices[0]?d.choices[0].message.content:''}
+
+$('testApi').onclick=async function(){$('apiStatus').textContent='Έλεγχος...';try{var x=await callAI('Απάντησε μόνο με OK');$('apiStatus').innerHTML='<span class="ok">Σύνδεση επιτυχής: '+esc(x.slice(0,80))+'</span>'}catch(e){$('apiStatus').innerHTML='<span class="bad">'+esc(e.message)+'</span>'}};
+$('aiCheck').onclick=async function(){var t=$('textInput').value.trim();if(!t)return;$('issues').textContent='Ανάλυση...';try{var p='Διόρθωσε το ακόλουθο ελληνικό κείμενο. Έλεγξε ορθογραφία, τόνους, κόμματα, στίξη, γραμματική, σύνταξη και σαφήνεια. Επέστρεψε ΑΠΟΚΛΕΙΣΤΙΚΑ έγκυρο JSON: {"corrected":"...","issues":[{"original":"...","correction":"...","type":"ορθογραφία|στίξη|γραμματική|σύνταξη|ύφος","explanation":"..."}]} Κείμενο: '+t;var raw=await callAI(p),s=raw.indexOf('{'),e=raw.lastIndexOf('}'),clean=(s>=0&&e>s)?raw.slice(s,e+1):raw,d=JSON.parse(clean);$('corrected').value=d.corrected||'';$('issues').innerHTML=(d.issues||[]).map(function(i){return '<div class="issue"><span class="tag">'+esc(i.type)+'</span><b>'+esc(i.original)+' → '+esc(i.correction)+'</b><br>'+esc(i.explanation)+'</div>'}).join('')||'<div class="ok">Δεν εντοπίστηκαν λάθη.</div>'}catch(e){$('issues').innerHTML='<div class="bad">'+esc(e.message)+'</div>'}};
+$('applyCorrection').onclick=function(){if($('corrected').value)$('textInput').value=$('corrected').value};
+
+$('lettersBtn').onclick=function(){var s=$('wordInput').value,v='αάεέηήιίϊΐοόυύϋΰωώΑΆΕΈΗΉΙΊΪΟΌΥΎΫΩΏ',chars=Array.from(s).filter(function(c){return /[Α-Ωα-ωΆ-ώΪΫΐΰ]/.test(c)}),vs=chars.filter(function(c){return v.indexOf(c)>=0}),cs=chars.filter(function(c){return v.indexOf(c)<0});$('wordResults').innerHTML='<div class="issue"><b>Φωνήεντα ('+vs.length+')</b><br>'+esc(vs.join(' '))+'</div><div class="issue"><b>Σύμφωνα ('+cs.length+')</b><br>'+esc(cs.join(' '))+'</div>'};
+$('analyzeWords').onclick=async function(){var s=$('wordInput').value.trim();if(!s)return;$('wordResults').textContent='Ανάλυση...';try{var p='Κάνε μορφολογική και συντακτική ανάλυση της φράσης: "'+s+'". Για κάθε λέξη δώσε: μέρος του λόγου, γένος, αριθμό, πτώση όπου υπάρχουν, για ρήματα πρόσωπο/χρόνο/έγκλιση/φωνή, συντακτικό ρόλο και σύντομη εξήγηση.';var x=await callAI(p);$('wordResults').innerHTML='<pre>'+esc(x)+'</pre>'}catch(e){$('wordResults').innerHTML='<div class="bad">'+esc(e.message)+'</div>'}};
+$('conjugate').onclick=async function(){var v=$('verbInput').value.trim();if(!v)return;$('verbResults').textContent='Κλίση...';try{var p='Κλίσε το ελληνικό ρήμα "'+v+'" στον χρόνο "'+$('tense').value+'" και στη φωνή "'+$('voice').value+'". Δώσε τα 6 πρόσωπα και σύντομη παρατήρηση για ανώμαλους τύπους.';var x=await callAI(p);$('verbResults').innerHTML='<pre>'+esc(x)+'</pre>'}catch(e){$('verbResults').innerHTML='<div class="bad">'+esc(e.message)+'</div>'}};
+
+function ytId(url){try{var u=new URL(url);if(u.hostname.indexOf('youtu.be')>=0)return u.pathname.slice(1);if(u.searchParams.get('v'))return u.searchParams.get('v');var m=u.pathname.match(/\/embed\/([^/?]+)/);return m?m[1]:''}catch(e){return ''}}
+$('loadVideo').onclick=function(){var id=ytId($('youtubeUrl').value.trim());if(!id){alert('Μη έγκυρο YouTube URL');return}if(player&&player.loadVideoById)player.loadVideoById(id);else player=new YT.Player('player',{videoId:id,playerVars:{playsinline:1,rel:0,origin:'https://appassets.androidplatform.net'},events:{onReady:startSync}})};
+function parseTime(s){var p=s.trim().replace(',','.').split(':').map(Number);if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return Number(p[0])||0}
+function parseSubs(txt){txt=txt.replace(/\r/g,'').replace(/^WEBVTT.*\n+/,'');var blocks=txt.split(/\n{2,}/),out=[];blocks.forEach(function(b){var lines=b.trim().split('\n'),ti=lines.findIndex(function(x){return x.indexOf('-->')>=0});if(ti<0)return;var z=lines[ti].split('-->'),a=z[0].trim().split(' ')[0],e=z[1].trim().split(' ')[0],tx=lines.slice(ti+1).join(' ').replace(/<[^>]+>/g,'').trim();if(tx)out.push({start:parseTime(a),end:parseTime(e),text:tx})});return out}
+$('subFile').onchange=async function(e){var f=e.target.files[0];if(!f)return;cues=parseSubs(await f.text());translatedCues=[];$('subStatus').textContent='Φορτώθηκαν '+cues.length+' υπότιτλοι.';startSync()};
+function currentCue(arr,t){return arr.find(function(c){return t>=c.start&&t<=c.end})}
+function startSync(){clearInterval(syncTimer);syncTimer=setInterval(function(){if(!player||!player.getCurrentTime)return;var t=player.getCurrentTime(),a=currentCue(cues,t),g=currentCue(translatedCues,t);$('subOrig').textContent=a?a.text:'';$('subGr').textContent=g?g.text:''},250)}
+$('translateSubs').onclick=async function(){if(!cues.length){$('subStatus').textContent='Φόρτωσε πρώτα SRT ή VTT.';return}$('subStatus').textContent='Μετάφραση...';translatedCues=[];try{for(var i=0;i<cues.length;i+=25){var batch=cues.slice(i,i+25),numbered=batch.map(function(c,j){return (j+1)+'. '+c.text}).join('\n'),prompt='Μετάφρασε τις γραμμές υποτίτλων στα φυσικά ελληνικά. Διατήρησε ακριβώς την αρίθμηση και μία μετάφραση ανά γραμμή, χωρίς σχόλια:\n'+numbered,out=await callAI(prompt,'Είσαι επαγγελματίας μεταφραστής υποτίτλων. Μεταφράζεις πιστά, σύντομα και φυσικά στα ελληνικά.'),lines=out.split('\n').map(function(x){return x.trim()}).filter(Boolean);batch.forEach(function(c,j){var re=new RegExp('^'+(j+1)+'[\\.)]\\s*'),tr=lines.find(function(x){return re.test(x)});translatedCues.push({start:c.start,end:c.end,text:tr?tr.replace(re,''):c.text})});$('subStatus').textContent='Μεταφράστηκαν '+Math.min(i+25,cues.length)+' / '+cues.length}$('subStatus').innerHTML='<span class="ok">Η μετάφραση ολοκληρώθηκε.</span>'}catch(e){$('subStatus').innerHTML='<span class="bad">'+esc(e.message)+'</span>'}};
+$('clearSubs').onclick=function(){cues=[];translatedCues=[];$('subOrig').textContent='';$('subGr').textContent='';$('subStatus').textContent='Καθαρίστηκαν οι υπότιτλοι.'};
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body></html>

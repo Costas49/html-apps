@@ -1,4 +1,4 @@
-name: Build Kostas APK Maker
+name: Build Kostas Ultra AI Free
 
 on:
   push:
@@ -37,29 +37,32 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - name: Build APK Maker
+      - name: Build installable APK
         run: gradle -p kostas-apk-maker :app:assembleDebug --stacktrace
 
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp kostas-apk-maker/app/build/outputs/apk/debug/app-debug.apk output/Kostas-APK-Maker.apk
+          cp kostas-apk-maker/app/build/outputs/apk/debug/app-debug.apk output/Kostas-Ultra-AI-Free.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kostas-APK-Maker
-          path: output/Kostas-APK-Maker.apk
+          name: Kostas-Ultra-AI-Free
+          path: output/Kostas-Ultra-AI-Free.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish latest APK Maker
+      - name: Publish latest APK
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view kostas-apk-maker-latest >/dev/null 2>&1; then
-            gh release upload kostas-apk-maker-latest output/Kostas-APK-Maker.apk --clobber
+          if gh release view kostas-ultra-ai-free-latest >/dev/null 2>&1; then
+            gh release upload kostas-ultra-ai-free-latest output/Kostas-Ultra-AI-Free.apk --clobber
           else
-            gh release create kostas-apk-maker-latest output/Kostas-APK-Maker.apk               --target "$GITHUB_SHA"               --title "Kostas APK Maker - Latest"               --notes "Installable Android 10+ APK Maker."
+            gh release create kostas-ultra-ai-free-latest output/Kostas-Ultra-AI-Free.apk \
+              --target "$GITHUB_SHA" \
+              --title "Kostas Ultra AI Free - Latest" \
+              --notes "Android 10+ AI assistant and APK builder. Uses user-provided free-tier Gemini key and GitHub token."
           fi

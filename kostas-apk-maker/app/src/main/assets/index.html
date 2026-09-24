@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Kostas APK Maker</title>
+<title>Kostas Ultra AI Free</title>
 <style>
 :root{color-scheme:dark}
 *{box-sizing:border-box}
@@ -30,14 +30,79 @@ button:disabled{opacity:.55}
 #download{display:none;background:#16a36a;color:white;width:100%;margin-top:12px}
 #actions{background:#25304e;color:white;width:100%;margin-top:10px}
 @media(max-width:650px){.row{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:25px}}
+
+.ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ai-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}
+.ai-actions button{background:#243454;color:white;border:1px solid #3b4d75}
+.ai-actions button.active{background:#6d5dfc}
+.aiout{white-space:pre-wrap;line-height:1.55;min-height:90px;background:#090e1a;border:1px solid #27304a;border-radius:12px;padding:13px;margin-top:12px;overflow-wrap:anywhere}
+.keyok{color:#85f0b0}.keybad{color:#ff969e}
+.badge{display:inline-block;border:1px solid #3b4d75;border-radius:999px;padding:5px 9px;font-size:12px;color:#c9d5ff;margin:0 5px 5px 0}
+.ai-file{padding:9px;background:#0d1427;border-radius:12px;border:1px dashed #394362}
+@media(max-width:650px){.ai-grid,.ai-actions{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>⚙️ Kostas APK Maker 2</h1>
-  <p class="sub">HTML → APK με ένα πάτημα. Το GitHub workflow είναι ήδη έτοιμο και ξεκινά αυτόματα.</p>
+  <h1>✦ Kostas Ultra AI Free</h1>
+  <p class="sub">Σύγχρονο AI + App Builder: δημιουργία εφαρμογών, κώδικας, ανάλυση αρχείων και πραγματικό HTML → APK.</p>
+
 
   <div class="card">
+    <h2 style="margin-top:0">🧠 Ultra AI</h2>
+    <div>
+      <span class="badge">Gemini 3.8 Flash</span><span class="badge">Multimodal</span>
+      <span class="badge">App Builder</span><span class="badge">Code Lab</span>
+    </div>
+
+    <div class="ai-grid">
+      <div>
+        <label>Gemini API key</label>
+        <input id="geminiKey" type="password" placeholder="AIza..." autocomplete="off">
+      </div>
+      <div>
+        <label>Μοντέλο</label>
+        <select id="aiModel" style="width:100%;border:1px solid #394362;background:#0d1427;color:white;border-radius:12px;padding:12px">
+          <option value="auto">Αυτόματο Free</option>
+          <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+          <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary" id="saveGemini">Αποθήκευση AI key</button>
+      <button class="danger" id="clearGemini">Διαγραφή AI key</button>
+    </div>
+    <p id="geminiState" class="small">Έλεγχος κλειδιού…</p>
+
+    <label>Τι θέλεις να κάνει το AI;</label>
+    <textarea id="aiPrompt" style="min-height:125px" placeholder="Παράδειγμα: Φτιάξε εφαρμογή καιρού για Android 10, με μεγάλα γράμματα και offline αποθήκευση πόλης."></textarea>
+
+    <label>Προαιρετικό αρχείο για ανάλυση</label>
+    <input class="ai-file" id="aiFile" type="file" accept=".pdf,.txt,.md,.json,.csv,image/*,audio/*,video/*">
+
+    <div class="ai-actions">
+      <button data-aimode="app" class="active">⚡ Φτιάξε App</button>
+      <button data-aimode="ask">💬 Ρώτησε</button>
+      <button data-aimode="summary">◎ Σύνοψη</button>
+      <button data-aimode="explain">? Εξήγηση</button>
+      <button data-aimode="translate">文 Μετάφραση</button>
+      <button data-aimode="code">⌘ Code Lab</button>
+      <button data-aimode="story">◈ Story 7×</button>
+    </div>
+
+    <button class="primary" id="runAI" style="width:100%;margin-top:13px">ΤΡΕΞΕ ΤΟ AI</button>
+    <div id="aiOut" class="aiout">Έτοιμο. Για «Φτιάξε App», το AI γράφει ολοκληρωμένο HTML και το περνά αυτόματα στον APK Builder.</div>
+    <div class="actions">
+      <button class="secondary" id="copyAI">Αντιγραφή απάντησης</button>
+      <button class="secondary" id="useAIHtml">Χρήση ως HTML εφαρμογής</button>
+    </div>
+    <p class="small note">Η χρήση AI είναι δωρεάν όσο το API key βρίσκεται μέσα στα όρια του Free Tier. Το χτίσιμο APK γίνεται από το υπάρχον GitHub workflow.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">🔐 APK Builder</h2>
     <label>GitHub token</label>
     <input id="token" type="password" placeholder="github_pat_... ή ghp_..." autocomplete="off">
     <div class="actions">
@@ -287,6 +352,139 @@ $('build').onclick=async()=>{
     $('build').disabled=false;
   }
 };
+
+const aiPending=new Map();
+let aiMode='app';
+let lastAiText='';
+const AI_MODELS=['gemini-3.8-flash','gemini-3.7-flash'];
+
+window.UltraAI={
+  onNativeResponse(id,httpStatus,body){
+    const job=aiPending.get(id);
+    if(!job)return;
+    aiPending.delete(id);
+    job.resolve({status:httpStatus,body});
+  }
+};
+
+function hasGemini(){
+  try{return !!AndroidVault.hasGeminiKey()}catch(e){return false}
+}
+function refreshGeminiState(){
+  const ok=hasGemini();
+  $('geminiState').textContent=ok?'✓ Το Gemini key είναι αποθηκευμένο με ασφάλεια στη συσκευή.':'Δεν έχει αποθηκευτεί Gemini key.';
+  $('geminiState').className='small '+(ok?'keyok':'keybad');
+}
+$('saveGemini').onclick=()=>{
+  const v=$('geminiKey').value.trim();
+  if(!v){refreshGeminiState();return}
+  try{
+    const r=AndroidVault.saveGeminiKey(v);
+    if(r!=='OK')throw new Error(r||'Αποτυχία');
+    $('geminiKey').value='';
+    refreshGeminiState();
+  }catch(e){$('geminiState').textContent=String(e.message||e);$('geminiState').className='small keybad'}
+};
+$('clearGemini').onclick=()=>{try{AndroidVault.clearGeminiKey()}catch(e){} $('geminiKey').value='';refreshGeminiState()};
+
+document.querySelectorAll('[data-aimode]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-aimode]').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); aiMode=b.dataset.aimode;
+});
+
+function aiInstruction(mode,user){
+  const common='Απάντησε στα Ελληνικά, καθαρά και πρακτικά. Μην επινοείς στοιχεία. ';
+  if(mode==='app')return 'Είσαι κορυφαίος Android/web app engineer. Δημιούργησε ΜΟΝΟ ένα πλήρες, αυτοτελές HTML5 αρχείο που λειτουργεί offline όσο γίνεται, είναι touch-friendly για Android 10 WebView, χωρίς εξωτερικές βιβλιοθήκες/CDN, με responsive UI, τοπική αποθήκευση όπου ταιριάζει, σωστό error handling και χωρίς markdown fences. Απαγορεύεται να αφήσεις TODO ή ψεύτικα κουμπιά. Αίτημα: '+user;
+  if(mode==='summary')return common+'Κάνε σύντομη αλλά ουσιαστική σύνοψη, βασικά σημεία και συμπέρασμα. Υλικό: '+user;
+  if(mode==='explain')return common+'Εξήγησε το υλικό απλά, βήμα-βήμα, με ένα μικρό παράδειγμα όπου βοηθά. Υλικό: '+user;
+  if(mode==='translate')return 'Μετάφρασε πιστά στα Ελληνικά. Κράτησε το νόημα, τους τεχνικούς όρους και τη μορφή. Υλικό: '+user;
+  if(mode==='code')return common+'Λειτούργησε ως senior software engineer: εντόπισε σφάλματα, ασφάλεια και συμβατότητα, και δώσε διορθωμένο κώδικα όταν χρειάζεται. Υλικό/αίτημα: '+user;
+  if(mode==='story')return common+'Ανάλυσε το social-media story σε ακριβώς 7 μέρη: ① γεγονός, ② συναίσθημα, ③ μήνυμα, ④ στόχος, ⑤ όφελος λογαριασμού, ⑥ όφελος θεατή, ⑦ τι αποκρύπτεται/δεν γνωρίζουμε. Υλικό: '+user;
+  return common+user;
+}
+function nativeAI(model,payload){
+  return new Promise((resolve,reject)=>{
+    const id='ai-'+Date.now()+'-'+Math.random();
+    aiPending.set(id,{resolve});
+    try{AndroidVault.generate(id,model,JSON.stringify(payload))}
+    catch(e){aiPending.delete(id);reject(e);return}
+    setTimeout(()=>{if(aiPending.has(id)){aiPending.delete(id);reject(new Error('Η απάντηση άργησε πολύ.'))}},150000);
+  });
+}
+async function callAI(parts){
+  if(!hasGemini())throw new Error('Αποθήκευσε πρώτα δωρεάν Gemini API key.');
+  const chosen=$('aiModel').value;
+  const queue=chosen==='auto'?AI_MODELS:[chosen];
+  const payload={contents:[{role:'user',parts}],generationConfig:{temperature:aiMode==='app'?0.25:0.3,maxOutputTokens:aiMode==='app'?16000:6000}};
+  let last;
+  for(const model of queue){
+    const r=await nativeAI(model,payload);
+    let d={}; try{d=JSON.parse(r.body||'{}')}catch(e){}
+    if(r.status>=200&&r.status<300){
+      const t=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('\n').trim();
+      if(t)return t;
+      last=new Error('Το μοντέλο δεν επέστρεψε κείμενο.'); continue;
+    }
+    last=new Error(d.error?.message||('HTTP '+r.status));
+    if(chosen!=='auto'||![400,404,429].includes(r.status))break;
+  }
+  throw last||new Error('Αποτυχία AI.');
+}
+function fileToB64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=()=>reject(new Error('Δεν διαβάστηκε το αρχείο.'));r.readAsDataURL(file)})}
+function fileText(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(new Error('Δεν διαβάστηκε το αρχείο.'));r.readAsText(file)})}
+function mimeOf(file){return file.type||({pdf:'application/pdf',txt:'text/plain',md:'text/markdown',json:'application/json',csv:'text/csv',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',mp4:'video/mp4',webm:'video/webm'})[(file.name.split('.').pop()||'').toLowerCase()]||'application/octet-stream'}
+function stripHtmlFence(x){
+  let s=(x||'').trim().replace(/^\`\`\`(?:html)?\s*/i,'').replace(/\`\`\`\s*$/,'').trim();
+  const a=s.toLowerCase().indexOf('<!doctype html>');
+  if(a>=0)s=s.slice(a);
+  const b=s.toLowerCase().lastIndexOf('</html>');
+  if(b>=0)s=s.slice(0,b+7);
+  return s;
+}
+function aiError(e){
+  const s=String(e&&e.message?e.message:e);
+  if(/429|quota|RESOURCE_EXHAUSTED/i.test(s))return 'Έφτασες προσωρινά σε Free Tier όριο. Περίμενε ή δοκίμασε ξανά αργότερα.';
+  if(/API key|API_KEY_INVALID|401|403/i.test(s))return 'Το Gemini API key δεν είναι έγκυρο ή δεν έχει πρόσβαση.';
+  return s;
+}
+$('runAI').onclick=async()=>{
+  const q=$('aiPrompt').value.trim();
+  const f=$('aiFile').files&&$('aiFile').files[0];
+  if(!q&&!f){$('aiOut').textContent='Γράψε αίτημα ή διάλεξε αρχείο.';return}
+  $('runAI').disabled=true; $('aiOut').textContent='Το AI εργάζεται…';
+  try{
+    let user=q||'Ανάλυσε το συνημμένο αρχείο.';
+    const parts=[];
+    if(f){
+      if(f.size>8*1024*1024)throw new Error('Το αρχείο πρέπει να είναι έως 8 MB.');
+      const m=mimeOf(f);
+      if(m.startsWith('text/')||/json|csv/.test(m)){
+        user+='\n\nΑΡΧΕΙΟ '+f.name+':\n'+(await fileText(f)).slice(0,300000);
+      }else if(m==='application/pdf'||m.startsWith('image/')||m.startsWith('audio/')||m.startsWith('video/')){
+        parts.push({inline_data:{mime_type:m,data:await fileToB64(f)}});
+      }else throw new Error('Μη υποστηριζόμενος τύπος αρχείου.');
+    }
+    parts.unshift({text:aiInstruction(aiMode,user)});
+    const answer=await callAI(parts);
+    lastAiText=answer; $('aiOut').textContent=answer;
+    if(aiMode==='app'){
+      const html=stripHtmlFence(answer);
+      if(/<html[\s>]/i.test(html)&&/<\/html>/i.test(html)){
+        $('htmlCode').value=html;
+        status('✅ Το AI δημιούργησε HTML. Έλεγξέ το και πάτησε «ΦΤΙΑΞΕ APK».','good');
+      }
+    }
+  }catch(e){$('aiOut').textContent='❌ '+aiError(e)}
+  finally{$('runAI').disabled=false}
+};
+$('copyAI').onclick=async()=>{if(!lastAiText)return;try{await navigator.clipboard.writeText(lastAiText)}catch(e){}};
+$('useAIHtml').onclick=()=>{
+  const html=stripHtmlFence(lastAiText);
+  if(/<html[\s>]/i.test(html)){ $('htmlCode').value=html; status('Το AI HTML πέρασε στον APK Builder.','good'); }
+  else status('Η τελευταία απάντηση δεν είναι πλήρες HTML.','bad');
+};
+refreshGeminiState();
+
 </script>
 </body>
 </html>

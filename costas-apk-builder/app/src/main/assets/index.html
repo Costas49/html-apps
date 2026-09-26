@@ -3,41 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Costas Universal App</title>
+<title>PhotoMotion Free AI</title>
 <style>
-:root{--bg:#080808;--panel:#181818;--orange:#ff9d00;--text:#f5f5f5;--muted:#aaa}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
-body{min-height:100vh;padding:28px}
-main{max-width:1100px;margin:auto}
-.card{background:linear-gradient(180deg,#1b1b1b,#101010);border:1px solid #303030;border-radius:24px;padding:28px}
-h1{margin-top:0;font-size:34px}.tag{color:var(--orange)}
-p{font-size:20px;color:var(--muted);line-height:1.55}
-.row{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
-button,a{border:1px solid #5a430e;background:#17130b;color:#ffb11b;border-radius:14px;padding:15px 20px;font-size:19px;text-decoration:none}
-button:focus,a:focus,input:focus,textarea:focus{outline:none;box-shadow:0 0 0 5px rgba(255,157,0,.75)}
-code{color:#ffd27b}
-@media(max-width:760px){body{padding:16px}h1{font-size:28px}.card{padding:20px}}
+:root{--bg:#070a12;--panel:#111827;--line:#2b3855;--text:#f5f7ff;--muted:#a8b2cb;--accent:#8398ff;--accent2:#b78cff;--good:#86e5aa}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0,#18203a,#090d18 42%,#06080f);color:var(--text);font-family:Arial,sans-serif}
+body{padding:22px}.wrap{max-width:980px;margin:auto}.hero{padding:8px 4px 18px}h1{margin:0 0 8px;font-size:34px}.sub{color:var(--muted);font-size:17px;line-height:1.5}
+.card{background:linear-gradient(180deg,#151d31,#0e1423);border:1px solid var(--line);border-radius:24px;padding:20px;margin-bottom:16px;box-shadow:0 16px 34px rgba(0,0,0,.28)}
+h2{margin:0 0 10px}.ok{color:var(--good);font-weight:bold}.btn{width:100%;border:0;border-radius:17px;padding:16px;margin-top:12px;font-size:18px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.btn.alt{background:#19223a;border:1px solid #38486c}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.step{background:#0b1120;border:1px solid #2c3855;border-radius:16px;padding:12px;text-align:center}.n{display:block;font-size:21px;font-weight:900;color:#aab7ff;margin-bottom:5px}.small{font-size:13px;color:var(--muted);line-height:1.55}.warn{background:#191c2b;border:1px solid #4a405f;border-radius:16px;padding:14px;margin-top:14px;color:#d8dcef}
+@media(max-width:700px){body{padding:14px}.steps{grid-template-columns:1fr 1fr}h1{font-size:29px}}
 </style>
 </head>
 <body>
-<main>
-  <section class="card">
-    <h1><span class="tag">COSTAS</span> APK BUILDER</h1>
-    <p>Αυτό είναι το μόνιμο αρχείο <code>index.html</code>. Αντικατάστησέ το με τη δική σου HTML εφαρμογή και το GitHub θα δημιουργήσει εγκαταστάσιμο APK για Android 10 tablet και Android TV 12.</p>
-    <div class="row">
-      <button onclick="alert('Ο builder λειτουργεί σωστά.')">Δοκιμή</button>
-      <a href="https://www.google.com">Internet</a>
-    </div>
+<div class="wrap">
+  <section class="hero">
+    <h1>PhotoMotion Free AI</h1>
+    <div class="sub">Πραγματική δωρεάν δημιουργία <strong>φωτογραφία → AI βίντεο</strong>. Η βαριά επεξεργασία γίνεται σε δημόσιο δωρεάν GPU Space, όχι στο Lenovo tablet.</div>
   </section>
-</main>
-<script>
-document.addEventListener('keydown',e=>{
-  const els=[...document.querySelectorAll('button,a,input,textarea,select,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled);
-  if(!els.length)return;
-  let i=Math.max(0,els.indexOf(document.activeElement));
-  if(['ArrowRight','ArrowDown'].includes(e.key)){e.preventDefault();els[(i+1)%els.length].focus()}
-  if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
-});
-</script>
+
+  <section class="card">
+    <h2>Πραγματικό AI βίντεο</h2>
+    <div class="ok">✓ Δεν είναι zoom/pan της φωτογραφίας.</div>
+    <p class="small">Ανεβάζεις φωτογραφία, γράφεις prompt και το μοντέλο δημιουργεί νέα κινούμενα καρέ. Χρειάζεται Internet. Η δωρεάν GPU μπορεί να έχει ουρά ή ημερήσιο όριο.</p>
+    <button class="btn" onclick="AndroidApp.openPrimary()">Άνοιγμα AI Video — Wan 2.2</button>
+    <button class="btn alt" onclick="AndroidApp.openBackup()">Εφεδρικό AI Video — Wan 2.1</button>
+  </section>
+
+  <section class="card">
+    <h2>Χρήση</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span>Upload φωτογραφίας</div>
+      <div class="step"><span class="n">2</span>Γράψε prompt</div>
+      <div class="step"><span class="n">3</span>Generate Video</div>
+      <div class="step"><span class="n">4</span>Download MP4</div>
+    </div>
+    <div class="warn"><strong>Όριο του δωρεάν μοντέλου:</strong> το κύριο Wan 2.2 Space παράγει σύντομα clips έως περίπου 5 δευτερόλεπτα ανά generation. Πραγματικό συνεχόμενο AI βίντεο 5 λεπτών δεν είναι εφικτό δωρεάν ως μία generation. Για 5 λεπτά χρειάζονται πολλά clips και ένωση.</div>
+  </section>
+
+  <section class="card">
+    <h2>Prompt παράδειγμα</h2>
+    <p class="small">“The person naturally turns their head, smiles gently, hair moves in the wind, realistic body motion, cinematic camera movement, natural lighting.”</p>
+  </section>
+</div>
 </body>
 </html>

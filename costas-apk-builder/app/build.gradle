@@ -2,30 +2,26 @@ plugins {
     id 'com.android.application'
 }
 
-def apkApplicationId = project.findProperty("apkApplicationId") ?: "com.costas.universalapp"
-def apkAppName = project.findProperty("apkAppName") ?: "Costas Universal App"
-def apkVersionCode = (project.findProperty("apkVersionCode") ?: "1").toInteger()
-def apkVersionName = project.findProperty("apkVersionName") ?: "1.0"
-
 android {
     namespace 'com.costas.builder'
     compileSdk 34
 
     defaultConfig {
-        applicationId apkApplicationId
-        minSdk 29
-        targetSdk 34
-        versionCode apkVersionCode
-        versionName apkVersionName
-        resValue "string", "app_name", apkAppName
+        applicationId "com.costas.fmunlocktest"
+        minSdk 23
+        targetSdk 27
+        versionCode 1
+        versionName "1.0.0"
+        resValue "string", "app_name", "FM Χωρίς Ακουστικά"
     }
 
     buildTypes {
-        debug {
-            minifyEnabled false
-        }
-        release {
-            minifyEnabled false
-        }
+        debug { minifyEnabled false }
+        release { minifyEnabled false }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 }

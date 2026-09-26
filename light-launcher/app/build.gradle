@@ -3,15 +3,15 @@ android {
   namespace "com.costas.novalitelauncher"
   compileSdk 35
   defaultConfig {
-    applicationId "com.costas.novalitelauncher"
-    minSdk 29
-    targetSdk 35
+    applicationId "com.costas.fmunlocktest"
+    minSdk 23
+    targetSdk 27
     versionCode 1
     versionName "1.0.0"
   }
   buildTypes {
     debug { minifyEnabled false }
-    release { minifyEnabled true; proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro" }
+    release { minifyEnabled false }
   }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

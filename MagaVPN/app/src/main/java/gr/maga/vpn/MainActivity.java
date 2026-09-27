@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,6 +29,8 @@ import com.wireguard.config.Config;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Locale;
@@ -48,6 +51,8 @@ public final class MainActivity extends Activity implements VpnController.Listen
     private TextView status;
     private TextView stats;
     private TextView details;
+    private TextView ipStatus;
+    private final ExecutorService net = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() {
         @Override public void run() {
@@ -86,7 +91,12 @@ public final class MainActivity extends Activity implements VpnController.Listen
         stats = label("RX 0 B   •   TX 0 B",16,muted,false);
         stats.setBackgroundColor(card);
         stats.setPadding(dp(16),dp(16),dp(16),dp(16));
-        root.addView(stats, params(-1,-2,0,18));
+        root.addView(stats, params(-1,-2,0,8));
+
+        ipStatus = label("Δημόσια IP: —",16,muted,false);
+        ipStatus.setBackgroundColor(card);
+        ipStatus.setPadding(dp(16),dp(14),dp(16),dp(14));
+        root.addView(ipStatus, params(-1,-2,0,18));
 
         Button connect = button("ΣΥΝΔΕΣΗ VPN");
         connect.setOnClickListener(v -> requestVpnThenConnect());
@@ -96,9 +106,21 @@ public final class MainActivity extends Activity implements VpnController.Listen
         disconnect.setOnClickListener(v -> controller.disconnect());
         root.addView(disconnect, params(-1,dp(56),0,16));
 
+        Button proton = button("PROTON FREE 0€");
+        proton.setOnClickListener(v -> openWeb("https://protonvpn.com/free-vpn"));
+        root.addView(proton, params(-1,dp(54),0,8));
+
+        Button protonConfig = button("ΛΗΨΗ PROTON WIREGUARD .CONF");
+        protonConfig.setOnClickListener(v -> openWeb("https://account.protonvpn.com/downloads"));
+        root.addView(protonConfig, params(-1,dp(54),0,8));
+
         Button imp = button("ΕΙΣΑΓΩΓΗ WIREGUARD .CONF");
         imp.setOnClickListener(v -> openConfigPicker());
         root.addView(imp, params(-1,dp(54),0,8));
+
+        Button checkIp = button("ΕΛΕΓΧΟΣ ΔΗΜΟΣΙΑΣ IP");
+        checkIp.setOnClickListener(v -> checkPublicIp());
+        root.addView(checkIp, params(-1,dp(54),0,8));
 
         Button settings = button("ALWAYS-ON / KILL SWITCH");
         settings.setOnClickListener(v -> {
@@ -150,6 +172,7 @@ public final class MainActivity extends Activity implements VpnController.Listen
         details.setText("Backend: WireGuard " + controller.backendVersion()
                 + "\nConfig: " + (controller.hasConfig() ? "κρυπτογραφημένο στη συσκευή" : "δεν έχει εισαχθεί")
                 + "\nFull tunnel: AllowedIPs = 0.0.0.0/0, ::/0"
+                + "\n0€ mode: Proton Free WireGuard config"
                 + "\nKill switch: Android VPN > Always-on > Block without VPN");
     }
 
@@ -180,6 +203,36 @@ public final class MainActivity extends Activity implements VpnController.Listen
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("*/*");
         startActivityForResult(i,REQ_CONFIG);
+    }
+
+    private void openWeb(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Throwable t) {
+            Toast.makeText(this,"Δεν βρέθηκε browser",Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void checkPublicIp() {
+        if (ipStatus != null) ipStatus.setText("Δημόσια IP: έλεγχος…");
+        net.execute(() -> {
+            HttpURLConnection con = null;
+            try {
+                con = (HttpURLConnection)new URL("https://api.ipify.org").openConnection();
+                con.setConnectTimeout(8000);
+                con.setReadTimeout(8000);
+                con.setRequestProperty("User-Agent","MagaVPN/1.2");
+                try (InputStream in = con.getInputStream()) {
+                    String ip = new String(readAll(in,1024),StandardCharsets.UTF_8).trim();
+                    handler.post(() -> ipStatus.setText("Δημόσια IP: " + ip));
+                }
+            } catch (Throwable t) {
+                String msg = safe(t);
+                handler.post(() -> ipStatus.setText("Δημόσια IP: αποτυχία (" + msg + ")"));
+            } finally {
+                if (con != null) con.disconnect();
+            }
+        });
     }
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {

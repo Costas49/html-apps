@@ -1,0 +1,49 @@
+name: Build Google Gemini Browser FINAL APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "google-gemini-browser/**"
+      - ".github/workflows/build-google-gemini-browser-final.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build signed debug APK
+        working-directory: google-gemini-browser
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Rename APK
+        run: cp google-gemini-browser/app/build/outputs/apk/debug/app-debug.apk Google-Gemini-Browser-FINAL.apk
+
+      - name: SHA256
+        run: sha256sum Google-Gemini-Browser-FINAL.apk > Google-Gemini-Browser-FINAL.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Google-Gemini-Browser-FINAL
+          path: |
+            Google-Gemini-Browser-FINAL.apk
+            Google-Gemini-Browser-FINAL.apk.sha256

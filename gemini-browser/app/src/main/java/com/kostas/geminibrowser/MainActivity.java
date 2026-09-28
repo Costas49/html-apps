@@ -17,7 +17,7 @@ import android.media.MediaPlayer;
 import org.json.*;
 
 import java.io.*;
-import java.net.*;
+import java.net.URL;\nimport java.net.URLEncoder;\nimport javax.net.ssl.HttpsURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.*;
@@ -149,11 +149,11 @@ public class MainActivity extends Activity {
         s.setSupportMultipleWindows(false);
         s.setJavaScriptCanOpenWindowsAutomatically(false);
 
-        CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
-        CookieManager.getInstance().setAcceptCookie(true);
+        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
+        android.webkit.CookieManager.getInstance().setAcceptCookie(true);
 
         if (Build.VERSION.SDK_INT >= 26) {
-            WebView.enableSafeBrowsing(this, value -> {});
+            WebView.startSafeBrowsing(this, value -> {});
         }
 
         web.setWebChromeClient(new WebChromeClient() {
@@ -342,7 +342,7 @@ public class MainActivity extends Activity {
     private void clearBrowsingData() {
         web.clearHistory();
         web.clearCache(true);
-        CookieManager.getInstance().removeAllCookies(null);
+        android.webkit.CookieManager.getInstance().removeAllCookies(null);
         WebStorage.getInstance().deleteAllData();
         toast("Καθαρίστηκαν cookies, cache και ιστορικό");
     }

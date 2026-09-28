@@ -1,0 +1,44 @@
+name: Build Gemini Browser APK
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'gemini-browser/**'
+      - '.github/workflows/gemini-browser-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build signed debug APK
+        working-directory: gemini-browser
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Prepare APK
+        run: cp gemini-browser/app/build/outputs/apk/debug/app-debug.apk Google-Gemini-Browser-signed.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Google-Gemini-Browser-signed
+          path: Google-Gemini-Browser-signed.apk
+          retention-days: 7

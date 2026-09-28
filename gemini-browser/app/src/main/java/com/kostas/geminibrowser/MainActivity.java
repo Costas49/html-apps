@@ -39,8 +39,14 @@ public class MainActivity extends Activity {
     private MediaPlayer mediaPlayer;
 
     private static final String PREFS = "k_browser_prefs";
-    private static final String KEY_ALIAS = "gemini_api_key_aes_v1";
-    private static final String MODEL_TEXT = "gemini-3.8-flash";
+    private static final String KEY_ALIAS_PRIMARY = "gemini_api_key_primary_v2";
+    private static final String KEY_ALIAS_BACKUP = "gemini_api_key_backup_v2";
+    private static final String[] MODEL_TEXT_FALLBACK = {
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-2.5-flash-lite"
+    };
     private static final String MODEL_TTS = "gemini-3.8-flash-lite-tts";
 
     private final Set<String> blocked = new HashSet<>(Arrays.asList(
@@ -350,14 +356,13 @@ public class MainActivity extends Activity {
     }
 
     private void showGeminiMenu() {
-        String key = loadApiKey();
         String[] items = {
-            key.isEmpty() ? "🔑 Αποθήκευση Gemini Free key" : "🔑 Αλλαγή Gemini key",
-            "✦ Ρώτα Gemini 3.8",
+            "🔑 Gemini keys • κύριο + εφεδρικό",
+            "✦ Ρώτα Gemini",
             "📄 Περίληψη τρέχουσας σελίδας",
             "🔊 Gemini 3.8 Flash-Lite TTS",
-            "🧪 Έλεγχος key",
-            "🗑 Διαγραφή key"
+            "🧪 Έλεγχος key/fallback",
+            "🗑 Διαγραφή keys"
         };
         new AlertDialog.Builder(this).setTitle("Gemini")
             .setItems(items,(d,w)->{
@@ -371,18 +376,43 @@ public class MainActivity extends Activity {
     }
 
     private void askAndSaveApiKey() {
-        EditText e = new EditText(this);
-        e.setHint("Gemini API key");
-        e.setSingleLine(true);
-        e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        new AlertDialog.Builder(this).setTitle("Gemini Free key")
-            .setMessage("Το key δεν υπάρχει μέσα στο APK. Κρυπτογραφείται τοπικά με Android Keystore.")
-            .setView(e)
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(18), dp(4), dp(18), 0);
+
+        TextView note = new TextView(this);
+        note.setText("Το κύριο και το εφεδρικό key κρυπτογραφούνται τοπικά με Android Keystore. " +
+            "Αν υπάρξει 401/403/408/409/429/5xx, φόρτος ή προσωρινή αστοχία, γίνεται αυτόματη εναλλαγή.");
+        box.addView(note);
+
+        EditText primary = new EditText(this);
+        primary.setHint(loadApiKey(1).isEmpty() ? "Κύριο Gemini API key" : "Κύριο key • ήδη αποθηκευμένο");
+        primary.setSingleLine(true);
+        primary.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        box.addView(primary);
+
+        EditText backup = new EditText(this);
+        backup.setHint(loadApiKey(2).isEmpty() ? "Εφεδρικό Gemini API key (προαιρετικό)" : "Εφεδρικό key • ήδη αποθηκευμένο");
+        backup.setSingleLine(true);
+        backup.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        box.addView(backup);
+
+        new AlertDialog.Builder(this).setTitle("Gemini Free keys")
+            .setView(box)
             .setPositiveButton("Αποθήκευση",(d,w)->{
-                String k=e.getText().toString().trim();
-                if(k.length()<20){ toast("Το key φαίνεται μη έγκυρο"); return; }
-                try { saveApiKey(k); toast("Το key αποθηκεύτηκε κρυπτογραφημένα"); }
-                catch(Exception ex){ toast("Αποτυχία ασφαλούς αποθήκευσης"); }
+                String k1=primary.getText().toString().trim();
+                String k2=backup.getText().toString().trim();
+                try {
+                    if(!k1.isEmpty()) {
+                        if(k1.length()<20){ toast("Το κύριο key φαίνεται μη έγκυρο"); return; }
+                        saveApiKey(1,k1);
+                    }
+                    if(!k2.isEmpty()) {
+                        if(k2.length()<20){ toast("Το εφεδρικό key φαίνεται μη έγκυρο"); return; }
+                        saveApiKey(2,k2);
+                    }
+                    toast("Τα Gemini keys αποθηκεύτηκαν κρυπτογραφημένα");
+                } catch(Exception ex){ toast("Αποτυχία ασφαλούς αποθήκευσης"); }
             }).setNegativeButton("Άκυρο",null).show();
     }
 
@@ -390,12 +420,24 @@ public class MainActivity extends Activity {
         if (!ensureKey()) return;
         EditText e = new EditText(this);
         e.setHint("Τι θέλεις να ρωτήσεις;");
+        e.setText(currentSearchQuery());
         e.setMinLines(4);
         e.setGravity(Gravity.TOP);
-        new AlertDialog.Builder(this).setTitle("Gemini 3.8")
+        new AlertDialog.Builder(this).setTitle("Gemini • αυτόματο fallback")
             .setView(e)
             .setPositiveButton("Αποστολή",(d,w)-> callGeminiText(e.getText().toString()))
             .setNegativeButton("Άκυρο",null).show();
+    }
+
+    private String currentSearchQuery() {
+        try {
+            String u = web.getUrl();
+            if (u != null) {
+                String q = Uri.parse(u).getQueryParameter("q");
+                if (q != null && !q.trim().isEmpty()) return q;
+            }
+        } catch(Exception ignored) {}
+        return "";
     }
 
     private void summarizePage() {
@@ -415,8 +457,7 @@ public class MainActivity extends Activity {
 
     private void callGeminiText(String prompt) {
         if (prompt == null || prompt.trim().isEmpty()) return;
-        final String key = loadApiKey();
-        toast("Gemini…");
+        toast("Gemini… fallback ενεργό");
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -428,17 +469,27 @@ public class MainActivity extends Activity {
                 contents.put(content);
                 body.put("contents", contents);
 
-                String response = postJson(
-                    "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL_TEXT + ":generateContent",
-                    key, body.toString());
+                Exception last = null;
+                for (String model : MODEL_TEXT_FALLBACK) {
+                    try {
+                        String response = postJsonAnyKey(
+                            "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+                            body.toString());
 
-                JSONObject o = new JSONObject(response);
-                JSONArray candidates = o.optJSONArray("candidates");
-                if (candidates == null || candidates.length()==0) throw new Exception(apiMessage(o));
-                JSONArray outParts = candidates.getJSONObject(0).getJSONObject("content").getJSONArray("parts");
-                StringBuilder sb = new StringBuilder();
-                for(int i=0;i<outParts.length();i++) sb.append(outParts.getJSONObject(i).optString("text",""));
-                runOnUiThread(() -> showTextResult("Gemini 3.8", sb.toString()));
+                        JSONObject o = new JSONObject(response);
+                        JSONArray candidates = o.optJSONArray("candidates");
+                        if (candidates == null || candidates.length()==0) throw new Exception(apiMessage(o));
+                        JSONArray outParts = candidates.getJSONObject(0).getJSONObject("content").getJSONArray("parts");
+                        StringBuilder sb = new StringBuilder();
+                        for(int i=0;i<outParts.length();i++) sb.append(outParts.getJSONObject(i).optString("text",""));
+                        String usedModel = model;
+                        runOnUiThread(() -> showTextResult("Gemini • " + usedModel, sb.toString()));
+                        return;
+                    } catch(Exception ex) {
+                        last = ex;
+                    }
+                }
+                throw last != null ? last : new Exception("Δεν βρέθηκε διαθέσιμο Gemini μοντέλο");
             } catch(Exception ex) {
                 runOnUiThread(() -> showError(ex.getMessage()));
             }
@@ -460,8 +511,7 @@ public class MainActivity extends Activity {
 
     private void callTts(String text) {
         if(text==null || text.trim().isEmpty()) return;
-        final String key=loadApiKey();
-        toast("Δημιουργία φωνής…");
+        toast("Δημιουργία φωνής… fallback key ενεργό");
         io.execute(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -480,7 +530,7 @@ public class MainActivity extends Activity {
                     new JSONObject().put("speech_config",
                         new JSONArray().put(new JSONObject().put("voice","Kore"))));
 
-                String response = postJson("https://generativelanguage.googleapis.com/v1beta/interactions", key, body.toString());
+                String response = postJsonAnyKey("https://generativelanguage.googleapis.com/v1beta/interactions", body.toString());
                 JSONObject o = new JSONObject(response);
                 String b64 = findAudio(o);
                 if (b64 == null || b64.isEmpty()) throw new Exception(apiMessage(o));
@@ -528,7 +578,31 @@ public class MainActivity extends Activity {
         callGeminiText("Απάντησε μόνο με τη λέξη OK.");
     }
 
-    private String postJson(String url, String key, String json) throws Exception {
+    private String postJsonAnyKey(String url, String json) throws Exception {
+        List<String> keys = loadApiKeys();
+        if (keys.isEmpty()) throw new Exception("Δεν έχει αποθηκευτεί Gemini API key");
+        Exception last = null;
+        for (int k=0; k<keys.size(); k++) {
+            String key = keys.get(k);
+            int[] waits = {1000, 2000, 4000};
+            for (int attempt=0; attempt<3; attempt++) {
+                try {
+                    return postJsonOnce(url, key, json);
+                } catch(ApiHttpException ex) {
+                    last = ex;
+                    if (!isRetryable(ex.code) || attempt==2) break;
+                    try { Thread.sleep(waits[attempt]); } catch(InterruptedException ignored) {}
+                } catch(Exception ex) {
+                    last = ex;
+                    if (attempt==2) break;
+                    try { Thread.sleep(waits[attempt]); } catch(InterruptedException ignored) {}
+                }
+            }
+        }
+        throw last != null ? last : new Exception("Gemini API: αποτυχία όλων των εφεδρειών");
+    }
+
+    private String postJsonOnce(String url, String key, String json) throws Exception {
         HttpsURLConnection c = (HttpsURLConnection)new URL(url).openConnection();
         c.setConnectTimeout(20000);
         c.setReadTimeout(60000);
@@ -540,8 +614,13 @@ public class MainActivity extends Activity {
         int code=c.getResponseCode();
         InputStream in = code>=200 && code<300 ? c.getInputStream() : c.getErrorStream();
         String text = readAll(in);
-        if(code<200 || code>=300) throw new Exception("Gemini API " + code + ": " + extractError(text));
+        if(code<200 || code>=300) throw new ApiHttpException(code, "Gemini API " + code + ": " + extractError(text));
         return text;
+    }
+
+    private boolean isRetryable(int code) {
+        return code==408 || code==409 || code==429 ||
+            code==500 || code==502 || code==503 || code==504;
     }
 
     private String readAll(InputStream in) throws Exception {
@@ -586,28 +665,41 @@ public class MainActivity extends Activity {
     }
 
     private boolean ensureKey() {
-        if(loadApiKey().isEmpty()){ toast("Αποθήκευσε πρώτα το Gemini key"); askAndSaveApiKey(); return false; }
+        if(loadApiKeys().isEmpty()){ toast("Αποθήκευσε πρώτα Gemini key"); askAndSaveApiKey(); return false; }
         return true;
     }
 
-    private void saveApiKey(String value) throws Exception {
-        SecretKey key = getOrCreateSecretKey();
+    private List<String> loadApiKeys() {
+        List<String> out = new ArrayList<>();
+        String a = loadApiKey(1);
+        String b = loadApiKey(2);
+        if(!a.isEmpty()) out.add(a);
+        if(!b.isEmpty() && !b.equals(a)) out.add(b);
+        return out;
+    }
+
+    private void saveApiKey(int slot, String value) throws Exception {
+        String alias = slot==2 ? KEY_ALIAS_BACKUP : KEY_ALIAS_PRIMARY;
+        SecretKey key = getOrCreateSecretKey(alias);
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE,key);
         byte[] ct=cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
+        String suffix = slot==2 ? "_2" : "_1";
         prefs.edit()
-            .putString("gemini_iv", Base64.encodeToString(cipher.getIV(),Base64.NO_WRAP))
-            .putString("gemini_ct", Base64.encodeToString(ct,Base64.NO_WRAP))
+            .putString("gemini_iv"+suffix, Base64.encodeToString(cipher.getIV(),Base64.NO_WRAP))
+            .putString("gemini_ct"+suffix, Base64.encodeToString(ct,Base64.NO_WRAP))
             .apply();
     }
 
-    private String loadApiKey() {
+    private String loadApiKey(int slot) {
         try {
-            String ivs=prefs.getString("gemini_iv","");
-            String cts=prefs.getString("gemini_ct","");
+            String suffix = slot==2 ? "_2" : "_1";
+            String alias = slot==2 ? KEY_ALIAS_BACKUP : KEY_ALIAS_PRIMARY;
+            String ivs=prefs.getString("gemini_iv"+suffix,"");
+            String cts=prefs.getString("gemini_ct"+suffix,"");
             if(ivs.isEmpty()||cts.isEmpty()) return "";
             KeyStore ks=KeyStore.getInstance("AndroidKeyStore"); ks.load(null);
-            SecretKey key=(SecretKey)ks.getKey(KEY_ALIAS,null);
+            SecretKey key=(SecretKey)ks.getKey(alias,null);
             if(key==null) return "";
             Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE,key,new GCMParameterSpec(128,Base64.decode(ivs,Base64.NO_WRAP)));
@@ -616,11 +708,11 @@ public class MainActivity extends Activity {
         } catch(Exception e){ return ""; }
     }
 
-    private SecretKey getOrCreateSecretKey() throws Exception {
+    private SecretKey getOrCreateSecretKey(String alias) throws Exception {
         KeyStore ks=KeyStore.getInstance("AndroidKeyStore"); ks.load(null);
-        if(ks.containsAlias(KEY_ALIAS)) return (SecretKey)ks.getKey(KEY_ALIAS,null);
+        if(ks.containsAlias(alias)) return (SecretKey)ks.getKey(alias,null);
         KeyGenerator gen=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
-        gen.init(new KeyGenParameterSpec.Builder(KEY_ALIAS,
+        gen.init(new KeyGenParameterSpec.Builder(alias,
             KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
@@ -629,12 +721,24 @@ public class MainActivity extends Activity {
     }
 
     private void clearApiKey() {
-        prefs.edit().remove("gemini_iv").remove("gemini_ct").apply();
+        prefs.edit()
+            .remove("gemini_iv_1").remove("gemini_ct_1")
+            .remove("gemini_iv_2").remove("gemini_ct_2")
+            .apply();
         try {
             KeyStore ks=KeyStore.getInstance("AndroidKeyStore"); ks.load(null);
-            if(ks.containsAlias(KEY_ALIAS)) ks.deleteEntry(KEY_ALIAS);
+            if(ks.containsAlias(KEY_ALIAS_PRIMARY)) ks.deleteEntry(KEY_ALIAS_PRIMARY);
+            if(ks.containsAlias(KEY_ALIAS_BACKUP)) ks.deleteEntry(KEY_ALIAS_BACKUP);
         } catch(Exception ignored){}
-        toast("Το Gemini key διαγράφηκε");
+        toast("Τα Gemini keys διαγράφηκαν");
+    }
+
+    private static class ApiHttpException extends Exception {
+        final int code;
+        ApiHttpException(int code, String message) {
+            super(message);
+            this.code = code;
+        }
     }
 
     private void toast(String s){ Toast.makeText(this,s,Toast.LENGTH_SHORT).show(); }

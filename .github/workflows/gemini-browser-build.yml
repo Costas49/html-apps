@@ -30,10 +30,10 @@ jobs:
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Prepare APK
-        run: cp gemini-browser/app/build/outputs/apk/debug/app-debug.apk Google-Gemini-Browser-signed.apk
+        run: cp gemini-browser/app/build/outputs/apk/debug/app-debug.apk Google-Gemini-Browser-FINAL.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Google-Gemini-Browser-signed
-          path: Google-Gemini-Browser-signed.apk
+          name: Google-Gemini-Browser-FINAL
+          path: Google-Gemini-Browser-FINAL.apk
           retention-days: 7

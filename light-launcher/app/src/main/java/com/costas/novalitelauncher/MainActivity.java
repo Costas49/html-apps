@@ -1,112 +1,340 @@
 package com.costas.novalitelauncher;
 
-import android.app.*;
-import android.app.role.RoleManager;
-import android.content.*;
-import android.content.pm.*;
-import android.graphics.*;
-import android.graphics.drawable.*;
-import android.os.*;
-import android.text.*;
-import android.view.*;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.*;
-import java.text.*;
-import java.util.*;
+import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Typeface;
+import android.media.AudioManager;
+import android.os.Bundle;
+import android.os.Handler;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity {
-  static final String P="nova_lite", F="favorites";
-  final ArrayList<AppItem> apps=new ArrayList<>(), shown=new ArrayList<>(), favs=new ArrayList<>();
-  SharedPreferences prefs; PackageManager pm; LinearLayout home,drawer; GridView grid,favGrid; EditText search; TextView clock,date;
-  final Handler h=new Handler(Looper.getMainLooper());
 
-  @Override public void onCreate(Bundle b){
-    super.onCreate(b); pm=getPackageManager(); prefs=getSharedPreferences(P,MODE_PRIVATE);
-    getWindow().setStatusBarColor(Color.TRANSPARENT); getWindow().setNavigationBarColor(Color.rgb(8,11,18));
-    build(); load(); tick();
-  }
+    private static final int DEVICE_OUT_WIRED_HEADSET = 0x4;
+    private static final int DEVICE_OUT_WIRED_HEADPHONE = 0x8;
+    private static final int DEVICE_IN_WIRED_HEADSET = 0x80000010;
 
-  void build(){
-    FrameLayout root=new FrameLayout(this); root.setBackgroundColor(Color.rgb(8,11,18)); setContentView(root);
-    home=new LinearLayout(this); home.setOrientation(LinearLayout.VERTICAL); home.setPadding(dp(22),dp(26),dp(22),dp(18)); root.addView(home,new FrameLayout.LayoutParams(-1,-1));
-    drawer=new LinearLayout(this); drawer.setOrientation(LinearLayout.VERTICAL); drawer.setPadding(dp(16),dp(20),dp(16),dp(10)); drawer.setBackgroundColor(Color.rgb(8,11,18)); drawer.setVisibility(View.GONE); root.addView(drawer,new FrameLayout.LayoutParams(-1,-1));
+    private static final int FOR_MEDIA = 1;
+    private static final int FORCE_NONE = 0;
+    private static final int FORCE_SPEAKER = 1;
 
-    LinearLayout top=new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL); home.addView(top,new LinearLayout.LayoutParams(-1,-2));
-    LinearLayout tb=new LinearLayout(this); tb.setOrientation(LinearLayout.VERTICAL); top.addView(tb,new LinearLayout.LayoutParams(0,-2,1));
-    clock=txt("",48,Color.WHITE,true); date=txt("",15,0xFFB9C3D6,false); tb.addView(clock); tb.addView(date);
-    Button role=btn("⌂  Ορισμός Home"); top.addView(role,new LinearLayout.LayoutParams(dp(145),dp(48))); role.setOnClickListener(v->requestHome());
+    private AudioManager audioManager;
+    private TextView status;
+    private String lastFmPackage = null;
 
-    TextView hero=txt("Nova Lite",28,Color.WHITE,true); LinearLayout.LayoutParams hp=new LinearLayout.LayoutParams(-1,-2); hp.topMargin=dp(28); home.addView(hero,hp);
-    home.addView(txt("Γρήγορος • καθαρός • χωρίς διαφημίσεις",14,0xFF95A4BF,false));
-    Button sb=btn("⌕  Αναζήτηση εφαρμογών"); LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(56)); sp.topMargin=dp(22); home.addView(sb,sp); sb.setOnClickListener(v->showDrawer(true));
-    TextView ft=txt("Αγαπημένα",16,0xFFD5DCEE,true); LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,-2); fp.topMargin=dp(22); fp.bottomMargin=dp(8); home.addView(ft,fp);
-    favGrid=makeGrid(4); home.addView(favGrid,new LinearLayout.LayoutParams(-1,0,1));
-    Button all=btn("▦  Όλες οι εφαρμογές"); home.addView(all,new LinearLayout.LayoutParams(-1,dp(56))); all.setOnClickListener(v->showDrawer(false));
-
-    LinearLayout bar=new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL); drawer.addView(bar,new LinearLayout.LayoutParams(-1,dp(54)));
-    Button back=btn("‹"); back.setTextSize(28); bar.addView(back,new LinearLayout.LayoutParams(dp(56),dp(48))); back.setOnClickListener(v->showHome());
-    TextView title=txt("Εφαρμογές",23,Color.WHITE,true); LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1); tp.leftMargin=dp(12); bar.addView(title,tp);
-
-    search=new EditText(this); search.setSingleLine(true); search.setTextColor(Color.WHITE); search.setHintTextColor(0xFF8390A8); search.setHint("Αναζήτηση…"); search.setTextSize(17); search.setPadding(dp(18),0,dp(18),0); search.setBackground(round(0xFF171D2A,18,0xFF2B3750));
-    LinearLayout.LayoutParams sr=new LinearLayout.LayoutParams(-1,dp(54)); sr.topMargin=dp(10); sr.bottomMargin=dp(12); drawer.addView(search,sr);
-    search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){} public void onTextChanged(CharSequence s,int st,int b,int c){filter(s.toString());} public void afterTextChanged(Editable e){}});
-
-    int cols=Math.max(4,Math.min(6,getResources().getConfiguration().screenWidthDp/95)); grid=makeGrid(cols); drawer.addView(grid,new LinearLayout.LayoutParams(-1,0,1));
-    TextView hint=txt("Παρατεταμένο πάτημα = αγαπημένο",12,0xFF7F8AA0,false); hint.setGravity(Gravity.CENTER); drawer.addView(hint);
-  }
-
-  void load(){
-    Intent q=new Intent(Intent.ACTION_MAIN,null); q.addCategory(Intent.CATEGORY_LAUNCHER); apps.clear();
-    for(ResolveInfo r:pm.queryIntentActivities(q,0)){
-      if(r.activityInfo==null||getPackageName().equals(r.activityInfo.packageName))continue;
-      apps.add(new AppItem(String.valueOf(r.loadLabel(pm)),new ComponentName(r.activityInfo.packageName,r.activityInfo.name),r.loadIcon(pm)));
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        buildUi();
+        refreshStatus("Έτοιμο. Πάτησε το μεγάλο κουμπί για δοκιμή.");
     }
-    final Collator c=Collator.getInstance(new Locale("el","GR")); Collections.sort(apps,(a,b)->c.compare(a.name,b.name));
-    Set<String> s=new LinkedHashSet<>(prefs.getStringSet(F,Collections.emptySet()));
-    if(s.isEmpty()){for(int i=0;i<Math.min(8,apps.size());i++)s.add(apps.get(i).key()); prefs.edit().putStringSet(F,s).apply();}
-    refreshFavs(); filter("");
-  }
 
-  void refreshFavs(){
-    favs.clear(); Set<String>s=prefs.getStringSet(F,Collections.emptySet()); for(AppItem a:apps)if(s.contains(a.key()))favs.add(a);
-    favGrid.setAdapter(new AppAdapter(favs)); favGrid.setOnItemClickListener((p,v,pos,id)->open(favs.get(pos))); favGrid.setOnItemLongClickListener((p,v,pos,id)->{toggle(favs.get(pos));return true;});
-  }
-  void filter(String q){
-    if(grid==null)return; String n=q.trim().toLowerCase(Locale.getDefault()); shown.clear();
-    for(AppItem a:apps)if(n.isEmpty()||a.name.toLowerCase(Locale.getDefault()).contains(n))shown.add(a);
-    grid.setAdapter(new AppAdapter(shown)); grid.setOnItemClickListener((p,v,pos,id)->open(shown.get(pos))); grid.setOnItemLongClickListener((p,v,pos,id)->{toggle(shown.get(pos));return true;});
-  }
-  void toggle(AppItem a){
-    Set<String>s=new LinkedHashSet<>(prefs.getStringSet(F,Collections.emptySet())); boolean add;
-    if(s.contains(a.key())){s.remove(a.key());add=false;}else{s.add(a.key());add=true;} prefs.edit().putStringSet(F,s).apply(); refreshFavs();
-    Toast.makeText(this,add?"Προστέθηκε στα αγαπημένα":"Αφαιρέθηκε",Toast.LENGTH_SHORT).show();
-  }
-  void open(AppItem a){
-    try{Intent i=new Intent(Intent.ACTION_MAIN);i.addCategory(Intent.CATEGORY_LAUNCHER);i.setComponent(a.c);i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);startActivity(i);}
-    catch(Exception e){Toast.makeText(this,"Δεν μπόρεσε να ανοίξει",Toast.LENGTH_SHORT).show();}
-  }
-  void requestHome(){
-    RoleManager r=(RoleManager)getSystemService(Context.ROLE_SERVICE);
-    if(r!=null&&r.isRoleAvailable(RoleManager.ROLE_HOME)){
-      if(r.isRoleHeld(RoleManager.ROLE_HOME))Toast.makeText(this,"Ήδη προεπιλεγμένος launcher",Toast.LENGTH_SHORT).show();
-      else startActivityForResult(r.createRequestRoleIntent(RoleManager.ROLE_HOME),7);
-    }else Toast.makeText(this,"Ρυθμίσεις → Εφαρμογές → Προεπιλεγμένες → Home",Toast.LENGTH_LONG).show();
-  }
-  void showDrawer(boolean focus){home.setVisibility(View.GONE);drawer.setVisibility(View.VISIBLE);if(focus){search.requestFocus();search.postDelayed(()->{InputMethodManager im=(InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(im!=null)im.showSoftInput(search,InputMethodManager.SHOW_IMPLICIT);},120);}}
-  void showHome(){search.setText("");search.clearFocus();InputMethodManager im=(InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(im!=null)im.hideSoftInputFromWindow(search.getWindowToken(),0);drawer.setVisibility(View.GONE);home.setVisibility(View.VISIBLE);}
-  @Override public void onBackPressed(){if(drawer.getVisibility()==View.VISIBLE)showHome();}
-  void tick(){h.post(new Runnable(){public void run(){Date d=new Date();clock.setText(new SimpleDateFormat("HH:mm",Locale.getDefault()).format(d));date.setText(new SimpleDateFormat("EEEE, d MMMM",new Locale("el","GR")).format(d));h.postDelayed(this,30000);}});}
+    private void buildUi() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(18), dp(18), dp(18), dp(24));
+        scroll.addView(root);
 
-  GridView makeGrid(int n){GridView g=new GridView(this);g.setNumColumns(n);g.setVerticalSpacing(dp(8));g.setHorizontalSpacing(dp(4));g.setSelector(android.R.color.transparent);return g;}
-  Button btn(String s){Button b=new Button(this);b.setAllCaps(false);b.setText(s);b.setTextColor(Color.WHITE);b.setTextSize(15);b.setBackground(round(0xFF171D2A,18,0xFF2B3750));return b;}
-  TextView txt(String s,float z,int c,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(c);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
-  Drawable round(int fill,int radius,int stroke){GradientDrawable d=new GradientDrawable();d.setColor(fill);d.setCornerRadius(dp(radius));d.setStroke(dp(1),stroke);return d;}
-  int dp(int v){return(int)(v*getResources().getDisplayMetrics().density+.5f);}
+        TextView title = new TextView(this);
+        title.setText("FM ΧΩΡΙΣ ΑΚΟΥΣΤΙΚΑ");
+        title.setTextSize(27);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        root.addView(title, fullWidth(dp(8)));
 
-  class AppAdapter extends BaseAdapter{
-    final List<AppItem>d;AppAdapter(List<AppItem>x){d=x;}public int getCount(){return d.size();}public Object getItem(int p){return d.get(p);}public long getItemId(int p){return p;}
-    public View getView(int p,View cv,ViewGroup parent){Holder x;if(cv==null){LinearLayout c=new LinearLayout(MainActivity.this);c.setOrientation(LinearLayout.VERTICAL);c.setGravity(Gravity.CENTER);c.setPadding(dp(4),dp(7),dp(4),dp(6));ImageView i=new ImageView(MainActivity.this);c.addView(i,new LinearLayout.LayoutParams(dp(48),dp(48)));TextView t=txt("",12,0xFFF0F3F8,false);t.setGravity(Gravity.CENTER);t.setMaxLines(2);t.setPadding(2,dp(5),2,0);c.addView(t,new LinearLayout.LayoutParams(-1,dp(38)));x=new Holder(i,t);c.setTag(x);cv=c;}else x=(Holder)cv.getTag();AppItem a=d.get(p);x.i.setImageDrawable(a.icon);x.t.setText(a.name);return cv;}
-  }
-  static class Holder{final ImageView i;final TextView t;Holder(ImageView a,TextView b){i=a;t=b;}}
-  static class AppItem{final String name;final ComponentName c;final Drawable icon;AppItem(String n,ComponentName x,Drawable d){name=n;c=x;icon=d;}String key(){return c.flattenToString();}}
+        TextView intro = new TextView(this);
+        intro.setText("Αυτή η δοκιμή προσπαθεί να κάνει το Android να νομίζει ότι υπάρχει καλώδιο ακουστικών και μετά ανοίγει το εργοστασιακό FM.");
+        intro.setTextSize(18);
+        intro.setPadding(0, dp(8), 0, dp(14));
+        root.addView(intro, fullWidth(dp(8)));
+
+        Button test = bigButton("1. ΔΟΚΙΜΗ ΧΩΡΙΣ ΑΚΟΥΣΤΙΚΑ");
+        test.setOnClickListener(v -> runUnlockAndOpen());
+        root.addView(test, fullWidth(dp(10)));
+
+        Button open = bigButton("2. ΑΝΟΙΞΕ ΜΟΝΟ ΤΟ FM");
+        open.setOnClickListener(v -> {
+            boolean ok = openFactoryFm();
+            refreshStatus(ok ? "Άνοιξα το εργοστασιακό FM." : "Δεν βρήκα την εφαρμογή FM της συσκευής.");
+        });
+        root.addView(open, fullWidth(dp(10)));
+
+        Button speaker = bigButton("3. ΠΡΟΣΠΑΘΗΣΕ ΗΧΟ ΣΤΟ ΗΧΕΙΟ");
+        speaker.setOnClickListener(v -> {
+            String r = forceSpeaker(true);
+            refreshStatus("Δοκιμή ηχείου: " + r);
+        });
+        root.addView(speaker, fullWidth(dp(10)));
+
+        Button check = bigButton("ΕΛΕΓΧΟΣ ΣΥΣΚΕΥΗΣ");
+        check.setOnClickListener(v -> deviceCheck());
+        root.addView(check, fullWidth(dp(10)));
+
+        Button reset = bigButton("ΕΠΑΝΑΦΟΡΑ ΗΧΟΥ");
+        reset.setOnClickListener(v -> resetAudio());
+        root.addView(reset, fullWidth(dp(10)));
+
+        status = new TextView(this);
+        status.setTextSize(17);
+        status.setPadding(dp(12), dp(14), dp(12), dp(14));
+        status.setTextIsSelectable(true);
+        root.addView(status, fullWidth(dp(8)));
+
+        TextView note = new TextView(this);
+        note.setText("Σημαντικό: αν μετά τη δοκιμή χαθεί ο ήχος από άλλη εφαρμογή, άνοιξε ξανά εδώ και πάτησε «ΕΠΑΝΑΦΟΡΑ ΗΧΟΥ». Η εφαρμογή δεν αλλάζει μόνιμα το Lenovo.");
+        note.setTextSize(15);
+        note.setPadding(0, dp(8), 0, 0);
+        root.addView(note, fullWidth(0));
+
+        setContentView(scroll);
+    }
+
+    private Button bigButton(String text) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setTextSize(18);
+        b.setAllCaps(false);
+        b.setMinHeight(dp(58));
+        return b;
+    }
+
+    private LinearLayout.LayoutParams fullWidth(int bottomMargin) {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        p.bottomMargin = bottomMargin;
+        return p;
+    }
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    private void runUnlockAndOpen() {
+        refreshStatus("Γίνεται η δοκιμή…");
+
+        new Thread(() -> {
+            List<String> results = new ArrayList<>();
+            results.add("Εικονικό ακουστικό: " + setVirtualHeadset(true));
+            results.add("Ηχείο: " + forceSpeaker(true));
+
+            runOnUiThread(() -> {
+                boolean opened = openFactoryFm();
+                results.add("FM: " + (opened ? "άνοιξε" : "δεν βρέθηκε"));
+                refreshStatus(join(results));
+                if (opened) {
+                    new Handler().postDelayed(() -> forceSpeaker(true), 1200);
+                }
+            });
+        }).start();
+    }
+
+    private String setVirtualHeadset(boolean connected) {
+        int state = connected ? 1 : 0;
+        List<String> out = new ArrayList<>();
+
+        boolean any = false;
+        any |= callSetWiredDeviceState(DEVICE_OUT_WIRED_HEADPHONE, state, "FM-Virtual", out);
+        any |= callSetWiredDeviceState(DEVICE_OUT_WIRED_HEADSET, state, "FM-Virtual", out);
+        any |= callSetWiredDeviceState(DEVICE_IN_WIRED_HEADSET, state, "FM-Virtual", out);
+
+        boolean seen = false;
+        try {
+            seen = audioManager.isWiredHeadsetOn();
+        } catch (Throwable ignored) {}
+
+        if (any) {
+            return connected
+                    ? "εντολή στάλθηκε, Android βλέπει ακουστικό=" + (seen ? "ΝΑΙ" : "ΟΧΙ")
+                    : "έγινε επαναφορά";
+        }
+        return "δεν επιτράπηκε από το Android (" + join(out) + ")";
+    }
+
+    private boolean callSetWiredDeviceState(int device, int state, String name, List<String> details) {
+        try {
+            Method m = AudioManager.class.getDeclaredMethod(
+                    "setWiredDeviceConnectionState",
+                    int.class, int.class, String.class, String.class);
+            m.setAccessible(true);
+            m.invoke(audioManager, device, state, "", name);
+            return true;
+        } catch (Throwable first) {
+            try {
+                Method old = AudioManager.class.getDeclaredMethod(
+                        "setWiredDeviceConnectionState",
+                        int.class, int.class, String.class);
+                old.setAccessible(true);
+                old.invoke(audioManager, device, state, name);
+                return true;
+            } catch (Throwable second) {
+                details.add(shortError(second));
+                return false;
+            }
+        }
+    }
+
+    private String forceSpeaker(boolean on) {
+        try {
+            Class<?> c = Class.forName("android.media.AudioSystem");
+            Method m = c.getDeclaredMethod("setForceUse", int.class, int.class);
+            m.setAccessible(true);
+            Object result = m.invoke(null, FOR_MEDIA, on ? FORCE_SPEAKER : FORCE_NONE);
+
+            try {
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(on);
+            } catch (Throwable ignored) {}
+
+            return "εντολή στάλθηκε" + (result == null ? "" : " (" + result + ")");
+        } catch (Throwable e) {
+            try {
+                audioManager.setMode(AudioManager.MODE_NORMAL);
+                audioManager.setSpeakerphoneOn(on);
+                return "έγινε απλή δρομολόγηση Android";
+            } catch (Throwable e2) {
+                return "δεν επιτράπηκε: " + shortError(e);
+            }
+        }
+    }
+
+    private boolean openFactoryFm() {
+        PackageManager pm = getPackageManager();
+
+        String[] candidates = new String[] {
+                "com.android.fmradio",
+                "com.mediatek.FMRadio",
+                "com.mediatek.fmradio",
+                "com.lenovo.fmradio"
+        };
+
+        for (String pkg : candidates) {
+            if (launchPackage(pm, pkg)) {
+                lastFmPackage = pkg;
+                return true;
+            }
+        }
+
+        try {
+            List<ApplicationInfo> apps = pm.getInstalledApplications(0);
+            for (ApplicationInfo ai : apps) {
+                String pkg = ai.packageName == null ? "" : ai.packageName;
+                String low = pkg.toLowerCase();
+                if (low.contains("fmradio") || low.contains("fm.radio")) {
+                    if (launchPackage(pm, pkg)) {
+                        lastFmPackage = pkg;
+                        return true;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        return false;
+    }
+
+    private boolean launchPackage(PackageManager pm, String pkg) {
+        try {
+            Intent i = pm.getLaunchIntentForPackage(pkg);
+            if (i != null) {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    private void deviceCheck() {
+        boolean wired = false;
+        try {
+            wired = audioManager.isWiredHeadsetOn();
+        } catch (Throwable ignored) {}
+
+        String fm = findFmPackage();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Καλώδιο/ακουστικό που βλέπει το Android: ")
+                .append(wired ? "ΝΑΙ" : "ΟΧΙ")
+                .append("\n");
+        sb.append("Εργοστασιακό FM: ")
+                .append(fm == null ? "δεν εντοπίστηκε" : fm)
+                .append("\n");
+        sb.append("Android: ").append(android.os.Build.VERSION.RELEASE)
+                .append(" / API ").append(android.os.Build.VERSION.SDK_INT)
+                .append("\n");
+        sb.append("Συσκευή: ").append(android.os.Build.MANUFACTURER)
+                .append(" ").append(android.os.Build.MODEL);
+        refreshStatus(sb.toString());
+    }
+
+    private String findFmPackage() {
+        PackageManager pm = getPackageManager();
+        String[] candidates = new String[] {
+                "com.android.fmradio",
+                "com.mediatek.FMRadio",
+                "com.mediatek.fmradio",
+                "com.lenovo.fmradio"
+        };
+        for (String pkg : candidates) {
+            try {
+                if (pm.getLaunchIntentForPackage(pkg) != null) return pkg;
+            } catch (Throwable ignored) {}
+        }
+
+        try {
+            for (ApplicationInfo ai : pm.getInstalledApplications(0)) {
+                String p = ai.packageName == null ? "" : ai.packageName;
+                String low = p.toLowerCase();
+                if ((low.contains("fmradio") || low.contains("fm.radio"))
+                        && pm.getLaunchIntentForPackage(p) != null) {
+                    return p;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private void resetAudio() {
+        new Thread(() -> {
+            String a = setVirtualHeadset(false);
+            String b = forceSpeaker(false);
+            runOnUiThread(() -> refreshStatus("Επαναφορά:\n" + a + "\nΗχείο: " + b));
+        }).start();
+    }
+
+    private void refreshStatus(String text) {
+        if (status != null) status.setText(text);
+    }
+
+    private String shortError(Throwable e) {
+        Throwable t = e;
+        while (t.getCause() != null) t = t.getCause();
+        String s = t.getClass().getSimpleName();
+        if (t.getMessage() != null && !t.getMessage().isEmpty()) {
+            s += ": " + t.getMessage();
+        }
+        if (s.length() > 140) s = s.substring(0, 140);
+        return s;
+    }
+
+    private String join(List<String> parts) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) sb.append("\n");
+            sb.append(parts.get(i));
+        }
+        return sb.toString();
+    }
 }

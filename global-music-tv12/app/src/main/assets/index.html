@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Kostas Global Music</title>
+<style>
+:root{--bg:#05070b;--panel:#0c1119;--panel2:#111a27;--line:#243248;--text:#f3f7fb;--muted:#9eabba;--accent:#12dfa5;--accent2:#56b9ff;--warn:#ffcc5c}
+*{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at 20% 0,#10243a 0,#05070b 34%,#05070b 100%);color:var(--text);font-family:Arial,sans-serif;min-height:100%}
+body{padding:20px}.app{max-width:1760px;margin:auto}.top{display:flex;align-items:center;gap:18px}.brand{width:76px;height:76px;border-radius:22px;background:linear-gradient(145deg,#16e8ae,#50a8ff);color:#03120d;display:grid;place-items:center;font-size:36px;font-weight:900}.head{flex:1}.head h1{margin:0;font-size:31px;letter-spacing:.5px}.head p{margin:7px 0 0;color:var(--muted);font-size:16px}.clock{color:#b9c9d8;font-size:15px;text-align:right}
+.searchbar{display:grid;grid-template-columns:minmax(300px,1fr) 180px 170px;gap:12px;margin-top:18px}.searchbar input,.searchbar select,button{min-height:52px;border-radius:14px;border:1px solid var(--line);font-size:17px}.searchbar input,.searchbar select{background:#08101a;color:#fff;padding:0 15px}button{background:#111b28;color:#eaf5ff;padding:0 17px;font-weight:700;cursor:pointer}button.primary{background:var(--accent);color:#03110c;border-color:transparent}button.blue{background:#13304b;color:#a9d8ff;border-color:#285b85}button.gold{background:#32270f;color:#ffe5a3;border-color:#735719}button.danger{background:#321518;color:#ffb3bb;border-color:#6a292f}
+button:focus,input:focus,select:focus,a:focus{outline:none;box-shadow:0 0 0 5px rgba(18,223,165,.75);border-color:var(--accent);transform:scale(1.02)}
+.nav{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.nav button{min-height:46px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:18px;margin-top:18px}.panel{background:linear-gradient(180deg,rgba(15,23,34,.97),rgba(8,13,20,.97));border:1px solid #1e2c3e;border-radius:24px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.22)}.panel h2{margin:0 0 8px}.sub{color:var(--muted);font-size:14px;margin-bottom:14px}.results{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.song{background:#0b121c;border:1px solid #1e2d3e;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-width:0}.cover{aspect-ratio:1/1;background:linear-gradient(135deg,#162638,#09101a);display:grid;place-items:center;font-size:55px;overflow:hidden}.cover img{width:100%;height:100%;object-fit:cover}.meta{padding:13px;display:flex;flex-direction:column;gap:6px;min-height:130px}.meta strong{font-size:16px;line-height:1.2}.meta span{color:#b3c0ce;font-size:14px}.meta small{color:#8190a0}.songBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}.songBtns button{min-height:42px;font-size:13px;padding:0 8px}.now{position:sticky;top:18px}.nowcover{width:100%;aspect-ratio:1/1;border-radius:20px;overflow:hidden;background:linear-gradient(145deg,#0f2131,#081018);display:grid;place-items:center;font-size:76px}.nowcover img{width:100%;height:100%;object-fit:cover}.now h2{margin:15px 0 5px;font-size:23px}.now .artist{color:#b5c4d3}.now .details{color:#8191a2;font-size:13px;line-height:1.5;margin-top:9px}.player{width:100%;margin-top:14px}.player audio{width:100%}.status{margin-top:12px;padding:11px 13px;border-radius:12px;background:#071019;border:1px solid #1d2d3d;color:#9fb1c2;font-size:13px;line-height:1.45}.genres{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 15px}.genres button{min-height:38px;font-size:13px;padding:0 12px}.labels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.labelCard{background:#0a121b;border:1px solid #213044;border-radius:15px;padding:13px}.labelCard b{display:block}.labelCard small{color:#8fa0b0}.labelCard button{width:100%;margin-top:9px;min-height:38px}.empty{grid-column:1/-1;padding:40px;text-align:center;color:#8ea0b2;border:1px dashed #28384b;border-radius:18px}.footer{color:#738496;font-size:12px;margin-top:14px;line-height:1.45}
+@media(max-width:1250px){.results{grid-template-columns:repeat(3,1fr)}}@media(max-width:980px){.layout{grid-template-columns:1fr}.now{position:relative}.results{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.searchbar{grid-template-columns:1fr}.results{grid-template-columns:1fr}.labels{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">♫</div>
+    <div class="head">
+      <h1>Kostas Global Music TV</h1>
+      <p>Ελληνική & παγκόσμια μουσική • καλλιτέχνες • κυκλοφορίες • δισκογραφικές • εξώφυλλα</p>
+    </div>
+    <div class="clock"><div id="nowDate"></div><div id="lastUpdate">Δεν έγινε ενημέρωση ακόμη</div></div>
+  </div>
+
+  <div class="searchbar">
+    <input id="q" placeholder="Τραγούδι, τραγουδιστής/τραγουδίστρια, συγκρότημα..." autocomplete="off">
+    <select id="country">
+      <option value="GR">Ελλάδα πρώτα</option>
+      <option value="US">Παγκόσμια</option>
+      <option value="GB">Ην. Βασίλειο</option>
+      <option value="DE">Γερμανία</option>
+      <option value="FR">Γαλλία</option>
+      <option value="IT">Ιταλία</option>
+      <option value="ES">Ισπανία</option>
+    </select>
+    <button class="primary" onclick="searchMusic()">🔎 Αναζήτηση</button>
+  </div>
+
+  <div class="nav">
+    <button class="blue" onclick="loadFresh()">✨ Νέες κυκλοφορίες</button>
+    <button onclick="loadGreek()">🇬🇷 Ελληνικά</button>
+    <button onclick="loadLabels()">🏷 Ελληνικές εταιρείες</button>
+    <button onclick="showFavorites()">★ Αγαπημένα</button>
+    <button onclick="randomGreek()">🎲 Τυχαία ελληνικά</button>
+  </div>
+
+  <div class="genres" id="genres"></div>
+
+  <div class="layout">
+    <main class="panel">
+      <h2 id="sectionTitle">Νέες κυκλοφορίες</h2>
+      <div class="sub" id="sectionSub">Ζωντανή αναζήτηση καταλόγων. Τα πλήρη τραγούδια ανοίγουν σε νόμιμη εξωτερική υπηρεσία.</div>
+      <div class="results" id="results"><div class="empty">Φόρτωση…</div></div>
+      <div class="labels" id="labels" style="display:none"></div>
+    </main>
+
+    <aside class="panel now">
+      <div class="nowcover" id="nowCover">♫</div>
+      <h2 id="nowTitle">Δεν παίζει τραγούδι</h2>
+      <div class="artist" id="nowArtist">Διάλεξε ένα αποτέλεσμα</div>
+      <div class="details" id="nowDetails">Το εξώφυλλο του τραγουδιού εμφανίζεται εδώ όταν υπάρχει διαθέσιμο.</div>
+      <div class="player"><audio id="audio" controls></audio></div>
+      <div class="nav" style="margin-top:12px">
+        <button id="favBtn" onclick="favoriteCurrent()">★ Αγαπημένο</button>
+        <button id="ytBtn" onclick="openCurrentYouTube()">YouTube</button>
+      </div>
+      <div class="status" id="status">Έτοιμο. Η εφαρμογή ελέγχει νέες κυκλοφορίες κάθε φορά που ανοίγει.</div>
+      <div class="footer">
+        Οι προεπισκοπήσεις είναι μόνο όπου ο νόμιμος κατάλογος διαθέτει preview. Για ολόκληρο τραγούδι χρησιμοποιείται η επίσημη/εξωτερική υπηρεσία. Τα δεδομένα κυκλοφοριών και labels αντλούνται από MusicBrainz.
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pending={}; let reqNo=0; let lastMb=0; let current=null;
+const FAVORITES='kgm_tv_favorites_v1';
+const genres=['Pop','Rock','Hip-Hop/Rap','Dance','Electronic','R&B/Soul','Alternative','Indie','Metal','Jazz','Classical','Country','Latin','Reggae','Folk','World','Soundtrack','Λαϊκά','Έντεχνο','Ρεμπέτικο'];
+
+window.__nativeCallback=(id,body,error)=>{
+  const p=pending[id]; if(!p)return; delete pending[id];
+  if(error)p.reject(new Error(error)); else p.resolve(body);
+};
+function nativeGet(url){
+  return new Promise((resolve,reject)=>{
+    const id='r'+(++reqNo); pending[id]={resolve,reject};
+    if(window.AndroidTV&&AndroidTV.httpGet) AndroidTV.httpGet(url,id);
+    else fetch(url).then(r=>r.text()).then(resolve).catch(reject);
+  });
+}
+async function mbGet(url){
+  const wait=Math.max(0,1100-(Date.now()-lastMb));
+  if(wait) await new Promise(r=>setTimeout(r,wait));
+  lastMb=Date.now();
+  return nativeGet(url);
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function imgTag(url,alt='cover'){return url?'<img src="'+esc(url)+'" alt="'+esc(alt)+'" onerror="this.remove()">':'♫'}
+function setStatus(t){$('status').textContent=t}
+function setMode(title,sub){$('sectionTitle').textContent=title;$('sectionSub').textContent=sub;$('results').style.display='grid';$('labels').style.display='none'}
+function openExternal(url){if(window.AndroidTV&&AndroidTV.openExternal)AndroidTV.openExternal(url);else window.open(url,'_blank')}
+function youtubeUrl(title,artist=''){return 'https://www.youtube.com/results?search_query='+encodeURIComponent((artist+' '+title+' official audio').trim())}
+function appleArtwork(u){return u?u.replace(/100x100bb/, '600x600bb'):''}
+function countryCode(){return $('country').value||'GR'}
+
+function renderGenres(){
+  $('genres').innerHTML='';
+  genres.forEach(g=>{const b=document.createElement('button');b.textContent=g;b.onclick=()=>{$('q').value=g;searchMusic()};$('genres').appendChild(b)});
+}
+
+async function searchMusic(termOverride){
+  const term=(termOverride||$('q').value).trim();
+  if(!term){setStatus('Γράψε τίτλο, καλλιτέχνη ή είδος.');$('q').focus();return}
+  setMode('Αποτελέσματα: '+term,'Αναζήτηση τραγουδιών με εξώφυλλο και διαθέσιμη νόμιμη προεπισκόπηση.');
+  $('results').innerHTML='<div class="empty">Αναζήτηση…</div>';
+  try{
+    const url='https://itunes.apple.com/search?term='+encodeURIComponent(term)+'&country='+encodeURIComponent(countryCode())+'&media=music&entity=song&limit=60';
+    const data=JSON.parse(await nativeGet(url));
+    const rows=(data.results||[]).filter(x=>x.trackName&&x.artistName);
+    renderSongs(rows.map(x=>({
+      id:String(x.trackId||''),
+      title:x.trackName,
+      artist:x.artistName,
+      album:x.collectionName||'',
+      date:x.releaseDate||'',
+      genre:x.primaryGenreName||'',
+      art:appleArtwork(x.artworkUrl100||''),
+      preview:x.previewUrl||'',
+      external:x.trackViewUrl||youtubeUrl(x.trackName,x.artistName),
+      source:'Apple catalog'
+    })));
+    setStatus(rows.length+' αποτελέσματα.');
+  }catch(e){showError(e)}
+}
+
+function renderSongs(rows){
+  const box=$('results');box.innerHTML='';
+  if(!rows.length){box.innerHTML='<div class="empty">Δεν βρέθηκαν αποτελέσματα.</div>';return}
+  rows.forEach((x,i)=>{
+    const el=document.createElement('article');el.className='song';
+    const date=x.date?String(x.date).slice(0,10):'';
+    el.innerHTML='<div class="cover">'+imgTag(x.art,x.title)+'</div>'+
+      '<div class="meta"><strong>'+esc(x.title)+'</strong><span>'+esc(x.artist||'')+'</span><small>'+esc(x.album||'')+'</small><small>'+esc([x.genre,date].filter(Boolean).join(' • '))+'</small></div>'+
+      '<div class="songBtns"><button class="primary" data-act="play">'+(x.preview?'▶ Preview':'▶ Βρες & παίξε')+'</button><button data-act="full">Πλήρες</button></div>';
+    el.querySelector('[data-act="play"]').onclick=()=> x.preview?playSong(x):findAndPlay(x);
+    el.querySelector('[data-act="full"]').onclick=()=>openExternal(x.external||youtubeUrl(x.title,x.artist));
+    box.appendChild(el);
+  });
+}
+
+function playSong(x){
+  current=x;
+  $('nowTitle').textContent=x.title||'Χωρίς τίτλο';
+  $('nowArtist').textContent=x.artist||'';
+  $('nowDetails').textContent=[x.album,x.genre,(x.date||'').slice(0,10),x.source].filter(Boolean).join(' • ');
+  $('nowCover').innerHTML=imgTag(x.art,x.title);
+  const a=$('audio');a.src=x.preview||''; if(x.preview)a.play().catch(()=>{});
+  setStatus(x.preview?'Παίζει νόμιμη προεπισκόπηση.':'Δεν υπάρχει preview για αυτό το τραγούδι.');
+}
+
+async function findAndPlay(x){
+  setStatus('Ψάχνω διαθέσιμη προεπισκόπηση…');
+  try{
+    const term=(x.artist+' '+x.title).trim();
+    const u='https://itunes.apple.com/search?term='+encodeURIComponent(term)+'&country='+encodeURIComponent(countryCode())+'&media=music&entity=song&limit=10';
+    const d=JSON.parse(await nativeGet(u)); const r=(d.results||[])[0];
+    if(r){
+      playSong({title:r.trackName||x.title,artist:r.artistName||x.artist,album:r.collectionName||x.album,date:r.releaseDate||x.date,genre:r.primaryGenreName||x.genre,art:appleArtwork(r.artworkUrl100||x.art),preview:r.previewUrl||'',external:r.trackViewUrl||youtubeUrl(x.title,x.artist),source:'Apple catalog'});
+    }else{current=x;playSong(x);openExternal(youtubeUrl(x.title,x.artist))}
+  }catch(e){showError(e)}
+}
+
+function favoriteCurrent(){
+  if(!current){setStatus('Διάλεξε πρώτα τραγούδι.');return}
+  const arr=JSON.parse(localStorage.getItem(FAVORITES)||'[]');
+  if(!arr.some(x=>x.title===current.title&&x.artist===current.artist))arr.unshift(current);
+  localStorage.setItem(FAVORITES,JSON.stringify(arr.slice(0,200)));
+  setStatus('Αποθηκεύτηκε στα αγαπημένα.');
+}
+function showFavorites(){
+  setMode('Αγαπημένα','Αποθηκευμένα τοπικά στο Xiaomi Box.');
+  renderSongs(JSON.parse(localStorage.getItem(FAVORITES)||'[]'));
+}
+function openCurrentYouTube(){if(current)openExternal(youtubeUrl(current.title,current.artist));else setStatus('Διάλεξε πρώτα τραγούδι.')}
+
+function iso(d){return d.toISOString().slice(0,10)}
+async function loadFresh(){
+  setMode('Νέες κυκλοφορίες','Ζωντανός έλεγχος MusicBrainz για τις τελευταίες 14 ημέρες. Έως 100 εγγραφές ανά έλεγχο.');
+  $('results').innerHTML='<div class="empty">Έλεγχος νέων κυκλοφοριών…</div>';
+  const end=new Date(),start=new Date(Date.now()-14*86400000);
+  const cc=countryCode();
+  const q='date:['+iso(start)+' TO '+iso(end)+']'+(cc==='GR'?' AND country:GR':'');
+  try{
+    const url='https://musicbrainz.org/ws/2/release/?query='+encodeURIComponent(q)+'&fmt=json&limit=100';
+    const d=JSON.parse(await mbGet(url));
+    const rows=(d.releases||[]).map(r=>{
+      const artist=(r['artist-credit']||[]).map(a=>a.name||a.artist?.name||'').join('');
+      const li=(r['label-info']||r['label-info-list']||[])[0];
+      const label=li?.label?.name||'';
+      return {id:r.id,title:r.title,artist,album:label?('Label: '+label):'',date:r.date||'',genre:'Νέα κυκλοφορία',art:r.id?'https://coverartarchive.org/release/'+r.id+'/front-250':'',preview:'',external:youtubeUrl(r.title,artist),source:'MusicBrainz'};
+    }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    renderSongs(rows);
+    const stamp=new Date().toLocaleString('el-GR');localStorage.setItem('kgm_last_update',stamp);$('lastUpdate').textContent='Ενημέρωση: '+stamp;
+    setStatus('Ελέγχθηκαν '+rows.length+' πρόσφατες κυκλοφορίες.');
+  }catch(e){showError(e)}
+}
+async function loadGreek(){
+  $('country').value='GR';$('q').value='ελληνικά τραγούδια';await searchMusic('ελληνικά τραγούδια');
+  $('sectionTitle').textContent='Ελληνική μουσική';
+  $('sectionSub').textContent='Ελληνικός κατάλογος· μπορείς να ψάξεις και με ελληνικά ή λατινικά γράμματα.';
+}
+function randomGreek(){
+  const terms=['λαϊκά','έντεχνο','ρεμπέτικο','ελληνική ποπ','ελληνική ροκ','Greek music'];
+  const t=terms[Math.floor(Math.random()*terms.length)];$('country').value='GR';$('q').value=t;searchMusic(t)
+}
+async function loadLabels(){
+  $('results').style.display='none';$('labels').style.display='grid';$('sectionTitle').textContent='Ελληνικές δισκογραφικές εταιρείες';$('sectionSub').textContent='Ζωντανά αποτελέσματα από MusicBrainz με χώρα GR.';$('labels').innerHTML='<div class="empty">Φόρτωση labels…</div>';
+  try{
+    const url='https://musicbrainz.org/ws/2/label/?query='+encodeURIComponent('country:GR')+'&fmt=json&limit=100';
+    const d=JSON.parse(await mbGet(url));const rows=d.labels||[];$('labels').innerHTML='';
+    rows.sort((a,b)=>(a.name||'').localeCompare(b.name||'','el')).forEach(l=>{
+      const el=document.createElement('div');el.className='labelCard';el.innerHTML='<b>'+esc(l.name||'')+'</b><small>'+esc([l.type,l.country].filter(Boolean).join(' • '))+'</small><button>Κυκλοφορίες</button>';
+      el.querySelector('button').onclick=()=>loadLabelReleases(l.name||'');$('labels').appendChild(el);
+    });
+    setStatus(rows.length+' ελληνικές δισκογραφικές/labels.');
+  }catch(e){showError(e)}
+}
+async function loadLabelReleases(name){
+  setMode('Κυκλοφορίες: '+name,'Αποτελέσματα της συγκεκριμένης δισκογραφικής από MusicBrainz.');
+  $('results').innerHTML='<div class="empty">Φόρτωση κυκλοφοριών…</div>';
+  try{
+    const q='label:"'+String(name).replace(/"/g,'')+'" AND country:GR';
+    const u='https://musicbrainz.org/ws/2/release/?query='+encodeURIComponent(q)+'&fmt=json&limit=100';
+    const d=JSON.parse(await mbGet(u));
+    const rows=(d.releases||[]).map(r=>{const artist=(r['artist-credit']||[]).map(a=>a.name||a.artist?.name||'').join('');return{id:r.id,title:r.title,artist,album:name,date:r.date||'',genre:'',art:r.id?'https://coverartarchive.org/release/'+r.id+'/front-250':'',preview:'',external:youtubeUrl(r.title,artist),source:'MusicBrainz'}});
+    renderSongs(rows);setStatus(rows.length+' κυκλοφορίες για '+name+'.');
+  }catch(e){showError(e)}
+}
+function showError(e){$('results').innerHTML='<div class="empty">Σφάλμα σύνδεσης. Δοκίμασε ξανά.</div>';setStatus('Σφάλμα: '+(e?.message||e))}
+function updateDate(){$('nowDate').textContent=new Date().toLocaleString('el-GR',{dateStyle:'medium',timeStyle:'short'})}
+
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')searchMusic()});
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;
+  if(['INPUT','SELECT','AUDIO'].includes(tag))return;
+  const els=[...document.querySelectorAll('button,input,select')].filter(x=>!x.disabled&&x.offsetParent!==null);
+  if(!els.length)return;let i=els.indexOf(document.activeElement);if(i<0)i=0;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();els[(i+1)%els.length].focus()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
+});
+renderGenres();updateDate();setInterval(updateDate,60000);
+$('lastUpdate').textContent=localStorage.getItem('kgm_last_update')?'Τελευταία: '+localStorage.getItem('kgm_last_update'):'Πρώτη ενημέρωση';
+setTimeout(loadFresh,350);
+</script>
+</body>
+</html>

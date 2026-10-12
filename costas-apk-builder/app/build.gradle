@@ -2,22 +2,17 @@ plugins {
     id 'com.android.application'
 }
 
-def apkApplicationId = project.findProperty("apkApplicationId") ?: "com.costas.universalapp"
-def apkAppName = project.findProperty("apkAppName") ?: "Costas Universal App"
-def apkVersionCode = (project.findProperty("apkVersionCode") ?: "1").toInteger()
-def apkVersionName = project.findProperty("apkVersionName") ?: "1.0"
-
 android {
     namespace 'com.costas.builder'
     compileSdk 34
 
     defaultConfig {
-        applicationId apkApplicationId
+        applicationId "com.costas.photomotionai2"
         minSdk 29
         targetSdk 34
-        versionCode apkVersionCode
-        versionName apkVersionName
-        resValue "string", "app_name", apkAppName
+        versionCode 2
+        versionName "2.0"
+        resValue "string", "app_name", "PhotoMotion AI 2"
     }
 
     buildTypes {

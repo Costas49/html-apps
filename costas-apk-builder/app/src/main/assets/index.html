@@ -3,41 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Costas Universal App</title>
+<meta name="theme-color" content="#090d18">
+<title>PhotoMotion AI 2</title>
 <style>
-:root{--bg:#080808;--panel:#181818;--orange:#ff9d00;--text:#f5f5f5;--muted:#aaa}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
-body{min-height:100vh;padding:28px}
-main{max-width:1100px;margin:auto}
-.card{background:linear-gradient(180deg,#1b1b1b,#101010);border:1px solid #303030;border-radius:24px;padding:28px}
-h1{margin-top:0;font-size:34px}.tag{color:var(--orange)}
-p{font-size:20px;color:var(--muted);line-height:1.55}
-.row{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
-button,a{border:1px solid #5a430e;background:#17130b;color:#ffb11b;border-radius:14px;padding:15px 20px;font-size:19px;text-decoration:none}
-button:focus,a:focus,input:focus,textarea:focus{outline:none;box-shadow:0 0 0 5px rgba(255,157,0,.75)}
-code{color:#ffd27b}
-@media(max-width:760px){body{padding:16px}h1{font-size:28px}.card{padding:20px}}
+:root{--bg:#090d18;--panel:#12192a;--line:#2e3a59;--text:#f5f7ff;--muted:#aab3c9;--accent:#8498ff;--accent2:#b68dff;--ok:#91e7b1;--bad:#ff9dab}
+*{box-sizing:border-box}
+html,body{margin:0;background:linear-gradient(180deg,#151d34,#090d18 34%,#070a12);color:var(--text);font-family:Arial,sans-serif;min-height:100%}
+body{padding:14px}
+.wrap{max-width:1180px;margin:auto}
+h1{margin:0 0 6px;font-size:30px}.sub{color:var(--muted);font-size:15px;line-height:1.45;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:linear-gradient(180deg,#151d31,#0e1422);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 12px 26px rgba(0,0,0,.28)}
+.card h2{font-size:21px;margin:0 0 13px}.label{font-weight:700;margin:14px 0 8px;display:block}
+input[type=file],select,textarea{width:100%;background:#0a1020;color:#fff;border:1px solid #3a486c;border-radius:14px;padding:12px;font-size:15px}
+input[type=file]{min-height:52px}
+textarea{min-height:105px;resize:vertical}
+input[type=range]{width:100%}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:none;border-radius:14px;min-height:48px;padding:12px 17px;font-size:15px;font-weight:800;color:white;background:#28375d}.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2))}.btn.alt{background:#151d31;border:1px solid #344361}.btn.danger{background:#4a2230}.btn:disabled{opacity:.45}
+.preview{background:#000;border:1px solid #2c3855;border-radius:18px;overflow:hidden;height:340px}.preview canvas{display:block;width:100%;height:100%}
+.drop{margin-top:12px;border:1px solid #2d3957;border-radius:16px;background:#0b1020;padding:10px;color:#cbd4ec;font-size:13px;line-height:1.45}
+.two{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center}.readout{background:#0a1020;border:1px solid #33415f;border-radius:12px;text-align:center;padding:10px}
+.status{min-height:22px;margin-top:10px;color:#cbd3e8}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}.progress{height:12px;background:#090e19;border:1px solid #2e3958;border-radius:999px;overflow:hidden;margin-top:9px}.progress div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.small{font-size:12px;color:var(--muted);line-height:1.45}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.preview{height:280px}}
 </style>
 </head>
 <body>
-<main>
-  <section class="card">
-    <h1><span class="tag">COSTAS</span> APK BUILDER</h1>
-    <p>Αυτό είναι το μόνιμο αρχείο <code>index.html</code>. Αντικατάστησέ το με τη δική σου HTML εφαρμογή και το GitHub θα δημιουργήσει εγκαταστάσιμο APK για Android 10 tablet και Android TV 12.</p>
-    <div class="row">
-      <button onclick="alert('Ο builder λειτουργεί σωστά.')">Δοκιμή</button>
-      <a href="https://www.google.com">Internet</a>
-    </div>
-  </section>
-</main>
+<div class="wrap">
+  <h1>PhotoMotion AI 2</h1>
+  <div class="sub">Διορθωμένη έκδοση για Android 10: η φωτογραφία φορτώνεται με το κανονικό Android file picker και διαβάζεται με FileReader, χωρίς blob URL.</div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1. Φωτογραφία</h2>
+      <span class="label">Πάτησε ακριβώς εδώ για επιλογή φωτογραφίας</span>
+      <input id="imageInput" type="file" accept="image/*">
+      <div class="drop" id="imageInfo">Δεν έχει επιλεγεί φωτογραφία.</div>
+
+      <span class="label">Prompt / εντολή</span>
+      <textarea id="prompt" placeholder="π.χ. δυνατό zoom μέσα, κίνηση δεξιά, κινηματογραφικό, αργό"></textarea>
+
+      <span class="label">Κίνηση</span>
+      <select id="effect">
+        <option value="cinematic">Κινηματογραφικό zoom</option>
+        <option value="pan-right">Pan δεξιά</option>
+        <option value="pan-left">Pan αριστερά</option>
+        <option value="float">Απαλή πλεύση</option>
+        <option value="pulse">Αναπνοή / pulse</option>
+        <option value="dynamic">Δυναμικό</option>
+      </select>
+
+      <span class="label">Διάρκεια</span>
+      <div class="two"><input id="duration" type="range" min="5" max="300" value="12"><div id="durationOut" class="readout">00:12</div></div>
+
+      <span class="label">Ένταση κίνησης</span>
+      <div class="two"><input id="strength" type="range" min="10" max="100" value="70"><div id="strengthOut" class="readout">70%</div></div>
+
+      <span class="label">Ανάλυση</span>
+      <select id="quality"><option value="540">540p</option><option value="720" selected>720p</option><option value="1080">1080p</option></select>
+
+      <span class="label">Μουσική (προαιρετικά)</span>
+      <input id="audioInput" type="file" accept="audio/*">
+      <div class="drop" id="audioInfo">Δεν έχει επιλεγεί μουσική.</div>
+    </section>
+
+    <section class="card">
+      <h2>2. Κίνηση & βίντεο</h2>
+      <div class="preview"><canvas id="canvas" width="1280" height="720"></canvas></div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="startBtn" class="btn primary" disabled>▶ Έναρξη κίνησης</button>
+        <button id="stopBtn" class="btn alt" disabled>■ Παύση</button>
+        <button id="clearBtn" class="btn alt" disabled>Καθαρισμός</button>
+      </div>
+
+      <div class="drop">
+        <strong>Έλεγχος:</strong> μόλις επιλέξεις φωτογραφία, το preview πρέπει να αρχίσει να κινείται αυτόματα. Αν δεν αρχίσει, θα εμφανιστεί μήνυμα σφάλματος εδώ κάτω.
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <button id="exportBtn" class="btn primary" disabled>Εξαγωγή βίντεο</button>
+        <button id="cancelBtn" class="btn danger" style="display:none">Ακύρωση</button>
+      </div>
+      <div class="progress"><div id="bar"></div></div>
+      <div id="status" class="status">Έτοιμο. Διάλεξε φωτογραφία.</div>
+      <div class="small">Το αρχείο αποθηκεύεται στο Downloads/PhotoMotionAI. Αν το WebView δεν υποστηρίζει MP4, γίνεται WebM.</div>
+    </section>
+  </div>
+</div>
+
 <script>
-document.addEventListener('keydown',e=>{
-  const els=[...document.querySelectorAll('button,a,input,textarea,select,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled);
-  if(!els.length)return;
-  let i=Math.max(0,els.indexOf(document.activeElement));
-  if(['ArrowRight','ArrowDown'].includes(e.key)){e.preventDefault();els[(i+1)%els.length].focus()}
-  if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();els[(i-1+els.length)%els.length].focus()}
-});
+(function(){
+  function $(id){return document.getElementById(id)}
+  var imageInput=$('imageInput'),audioInput=$('audioInput'),prompt=$('prompt'),effect=$('effect'),duration=$('duration'),durationOut=$('durationOut'),strength=$('strength'),strengthOut=$('strengthOut'),quality=$('quality'),canvas=$('canvas'),ctx=canvas.getContext('2d'),startBtn=$('startBtn'),stopBtn=$('stopBtn'),clearBtn=$('clearBtn'),exportBtn=$('exportBtn'),cancelBtn=$('cancelBtn'),bar=$('bar'),status=$('status'),imageInfo=$('imageInfo'),audioInfo=$('audioInfo');
+  var img=null,imageFile=null,audioFile=null,running=false,raf=0,startTime=0,exporting=false,cancelExport=false,recorder=null,audioContext=null,audioSource=null;
+
+  function pad(n){return String(n).padStart(2,'0')}
+  function fmt(v){v=Math.round(Number(v)||0);return pad(Math.floor(v/60))+':'+pad(v%60)}
+  function setStatus(t,cls){status.textContent=t;status.className='status'+(cls?' '+cls:'')}
+  function updateUI(){durationOut.textContent=fmt(duration.value);strengthOut.textContent=strength.value+'%';var has=!!img;startBtn.disabled=!has||exporting;stopBtn.disabled=!running||exporting;clearBtn.disabled=!has||exporting;exportBtn.disabled=!has||exporting;imageInput.disabled=exporting;audioInput.disabled=exporting}
+  function setCanvas(){var q=Number(quality.value);if(q===1080){canvas.width=1920;canvas.height=1080}else if(q===720){canvas.width=1280;canvas.height=720}else{canvas.width=960;canvas.height=540}if(img)draw(0,Number(duration.value))}
+  function effectFromPrompt(){var t=(prompt.value||'').toLowerCase();if(/δεξιά|right/.test(t))return'pan-right';if(/αριστερά|left/.test(t))return'pan-left';if(/pulse|αναπνο|breath/.test(t))return'pulse';if(/δυναμ|dynamic|έντον/.test(t))return'dynamic';if(/απαλ|soft|float|πλεύ/.test(t))return'float';if(/zoom|κινηματογραφ|cinema/.test(t))return'cinematic';return effect.value}
+  function motion(t,total){var p=Math.min(1,Math.max(0,t/Math.max(total,.01))),m=effectFromPrompt(),s=Number(strength.value)/100,scale=1.1,dx=0,dy=0,rot=0;if(m==='cinematic'){scale=1.05+.38*s*p;dx=Math.sin(p*Math.PI)*canvas.width*.04*s;dy=-Math.sin(p*Math.PI*.8)*canvas.height*.03*s;rot=Math.sin(p*Math.PI*.7)*.018*s}else if(m==='pan-right'){scale=1.18;dx=(-1+2*p)*canvas.width*.15*s}else if(m==='pan-left'){scale=1.18;dx=(1-2*p)*canvas.width*.15*s}else if(m==='float'){scale=1.12+Math.sin(t*.9)*.035*s;dx=Math.sin(t*.55)*canvas.width*.035*s;dy=Math.cos(t*.45)*canvas.height*.03*s;rot=Math.sin(t*.35)*.012*s}else if(m==='pulse'){scale=1.12+Math.sin(t*1.3)*.07*s;dy=Math.sin(t*.8)*canvas.height*.015*s}else if(m==='dynamic'){scale=1.1+Math.sin(t*1.2)*.07*s;dx=Math.sin(t*.95)*canvas.width*.055*s;dy=Math.cos(t*.8)*canvas.height*.045*s;rot=Math.sin(t*.7)*.03*s}return{scale:scale,dx:dx,dy:dy,rot:rot}}
+  function draw(t,total){ctx.fillStyle='#020306';ctx.fillRect(0,0,canvas.width,canvas.height);if(!img)return;var cover=Math.max(canvas.width/img.naturalWidth,canvas.height/img.naturalHeight),mm=motion(t,total),w=img.naturalWidth*cover*mm.scale,h=img.naturalHeight*cover*mm.scale;ctx.save();ctx.translate(canvas.width/2+mm.dx,canvas.height/2+mm.dy);ctx.rotate(mm.rot);ctx.drawImage(img,-w/2,-h/2,w,h);ctx.restore();var g=ctx.createLinearGradient(0,0,0,canvas.height);g.addColorStop(0,'rgba(0,0,0,.02)');g.addColorStop(1,'rgba(0,0,0,.28)');ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height)}
+  function stopAnim(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;updateUI()}
+  function animate(now){if(!running)return;if(!startTime)startTime=now;var total=Number(duration.value),t=((now-startTime)/1000)%Math.max(total,.1);draw(t,total);raf=requestAnimationFrame(animate)}
+  function startAnim(){if(!img||exporting)return;stopAnim();running=true;startTime=0;raf=requestAnimationFrame(animate);updateUI();setStatus('Η κίνηση τρέχει.', 'ok')}
+  function loadImageFile(file){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onerror=function(){reject(new Error('FileReader απέτυχε'))};reader.onload=function(){var im=new Image();im.onerror=function(){reject(new Error('Η εικόνα δεν αποκωδικοποιήθηκε'))};im.onload=function(){img=im;imageFile=file;imageInfo.textContent='Φωτογραφία: '+file.name+' • '+Math.round(file.size/1024)+' KB • '+im.naturalWidth+'×'+im.naturalHeight;draw(0,Number(duration.value));updateUI();setStatus('Η φωτογραφία φορτώθηκε σωστά.', 'ok');setTimeout(startAnim,120);resolve()};im.src=reader.result};reader.readAsDataURL(file)})}
+  function clearImage(){stopAnim();img=null;imageFile=null;imageInput.value='';imageInfo.textContent='Δεν έχει επιλεγεί φωτογραφία.';ctx.fillStyle='#020306';ctx.fillRect(0,0,canvas.width,canvas.height);setStatus('Καθαρίστηκε.');updateUI()}
+  function bestMime(){if(!window.MediaRecorder)return'';var a=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp8','video/webm'];for(var i=0;i<a.length;i++){try{if(MediaRecorder.isTypeSupported(a[i]))return a[i]}catch(e){}}return''}
+  function toB64(bytes){var out='',step=24576;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(bytes.length,i+step)));return btoa(out)}
+  function sendBlob(blob){return blob.arrayBuffer().then(function(ab){var buf=new Uint8Array(ab),p=Promise.resolve();for(var i=0;i<buf.length;i+=98304){(function(sub){p=p.then(function(){if(window.AndroidTV&&AndroidTV.appendBase64Chunk){var ok=AndroidTV.appendBase64Chunk(toB64(sub));if(ok===false)throw new Error('Αποτυχία αποθήκευσης')}})})(buf.subarray(i,Math.min(buf.length,i+98304)))}return p})}
+  function prepareAudio(){if(!audioFile)return Promise.resolve({track:null});var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return Promise.resolve({track:null});audioContext=new AC();return audioContext.resume().then(function(){return audioFile.arrayBuffer()}).then(function(ab){return audioContext.decodeAudioData(ab.slice(0))}).then(function(buf){audioSource=audioContext.createBufferSource();audioSource.buffer=buf;audioSource.loop=true;var dest=audioContext.createMediaStreamDestination();audioSource.connect(dest);audioSource.start(0);return{track:dest.stream.getAudioTracks()[0]||null}})}
+  async function exportVideo(){if(!img||exporting)return;if(!canvas.captureStream||!window.MediaRecorder){setStatus('Το Android System WebView δεν υποστηρίζει εξαγωγή βίντεο.','bad');return}stopAnim();exporting=true;cancelExport=false;cancelBtn.style.display='inline-block';bar.style.width='0%';updateUI();var mime=bestMime();if(!mime){setStatus('Δεν βρέθηκε video codec.','bad');exporting=false;cancelBtn.style.display='none';updateUI();return}var ext=mime.indexOf('mp4')>=0?'mp4':'webm',filename='PhotoMotion_'+Date.now()+'.'+ext;try{if(window.AndroidTV&&AndroidTV.beginFile){var ok=AndroidTV.beginFile(filename,mime);if(ok===false)throw new Error('Δεν άνοιξε το αρχείο εξόδου')}var total=Number(duration.value),stream=canvas.captureStream(30),aud=await prepareAudio(),tracks=stream.getVideoTracks().slice();if(aud.track)tracks.push(aud.track);var mixed=new MediaStream(tracks),chunks=[],chain=Promise.resolve();recorder=new MediaRecorder(mixed,{mimeType:mime,videoBitsPerSecond:Number(quality.value)===1080?5500000:Number(quality.value)===720?2800000:1600000,audioBitsPerSecond:128000});recorder.ondataavailable=function(ev){if(!ev.data||!ev.data.size)return;if(window.AndroidTV&&AndroidTV.appendBase64Chunk)chain=chain.then(function(){return sendBlob(ev.data)});else chunks.push(ev.data)};var done=new Promise(function(resolve,reject){recorder.onerror=function(){reject(new Error('MediaRecorder failed'))};recorder.onstop=function(){chain.then(function(){if(window.AndroidTV&&AndroidTV.finishFile)AndroidTV.finishFile();else if(chunks.length){var blob=new Blob(chunks,{type:mime}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=filename;a.click();setTimeout(function(){URL.revokeObjectURL(u)},4000)}resolve()}).catch(reject)}});recorder.start(1000);var t0=performance.now();await new Promise(function(resolve){function render(now){var sec=Math.min(total,(now-t0)/1000),pct=Math.min(100,sec/total*100);draw(sec,total);bar.style.width=pct.toFixed(1)+'%';setStatus('Εξαγωγή '+pct.toFixed(0)+'%...');if(cancelExport||sec>=total){resolve();return}requestAnimationFrame(render)}requestAnimationFrame(render)});if(audioSource)try{audioSource.stop()}catch(e){};stream.getTracks().forEach(function(t){try{t.stop()}catch(e){}});if(recorder&&recorder.state!=='inactive')recorder.stop();await done;if(cancelExport){if(window.AndroidTV&&AndroidTV.cancelFile)AndroidTV.cancelFile();setStatus('Η εξαγωγή ακυρώθηκε.','bad')}else setStatus('Το βίντεο αποθηκεύτηκε στα Downloads/PhotoMotionAI.','ok')}catch(e){try{if(window.AndroidTV&&AndroidTV.cancelFile)AndroidTV.cancelFile()}catch(x){}setStatus('Σφάλμα εξαγωγής: '+(e.message||e),'bad')}finally{try{if(audioSource)audioSource.stop()}catch(e){};try{if(audioContext)audioContext.close()}catch(e){};audioSource=null;audioContext=null;recorder=null;exporting=false;cancelExport=false;cancelBtn.style.display='none';updateUI()}}
+  imageInput.addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;setStatus('Φορτώνω τη φωτογραφία...');loadImageFile(f).catch(function(e){setStatus('Δεν φορτώθηκε: '+e.message,'bad')})});
+  audioInput.addEventListener('change',function(){var f=this.files&&this.files[0];if(!f)return;audioFile=f;audioInfo.textContent='Μουσική: '+f.name+' • '+(f.size/1024/1024).toFixed(1)+' MB';setStatus('Η μουσική φορτώθηκε.','ok')});
+  duration.oninput=updateUI;strength.oninput=updateUI;quality.onchange=setCanvas;effect.onchange=function(){if(running){stopAnim();startAnim()}else if(img)draw(0,Number(duration.value))};prompt.oninput=function(){if(img&&!running)draw(0,Number(duration.value))};startBtn.onclick=startAnim;stopBtn.onclick=function(){stopAnim();if(img)draw(0,Number(duration.value));setStatus('Η κίνηση σταμάτησε.')};clearBtn.onclick=clearImage;exportBtn.onclick=exportVideo;cancelBtn.onclick=function(){cancelExport=true;setStatus('Ακύρωση...');try{if(recorder&&recorder.state!=='inactive')recorder.stop()}catch(e){}};
+  updateUI();setCanvas();
+})();
 </script>
 </body>
 </html>
